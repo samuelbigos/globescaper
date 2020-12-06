@@ -11,6 +11,7 @@ class Tri:
 	var type := "tri"
 	var v = []
 	var neighbors = [] # can be quads or tris
+	var children = []
 	
 	func has_edge(edge : Vector2) -> bool:
 		var edge_id = Vector2(min(edge.x, edge.y), max(edge.x, edge.y))
@@ -31,6 +32,7 @@ class Quad:
 	var type := "quad"
 	var v = []
 	var neighbors = [] # can be quads or tris
+	var children = []
 	
 	var tri_1_uid : Vector3
 	var tri_2_uid : Vector3
@@ -84,21 +86,81 @@ func generate_icosphere(verts, iterations : int):
 	
 	# at this stage we connect up neighbors, and we need to remember update neighbors as 
 	# we modify the icosphere since calculating neighbors again later will be expensive
+	for tri1 in tris:
+		# to get a tri's neighbors, find all other tris that share two verts with this tri
+		for tri2 in tris:
+			if tri1 == tri2:
+				continue
+			var shared_count = 0
+			for vert1 in tri1.v:
+				for vert2 in tri2.v:
+					if vert1 == vert2:
+						shared_count += 1
+			if shared_count >= 2:
+				tri1.neighbors.append(tri2)
+		if tri1.neighbors.size() != 3:
+			printerr("Error in neighbor calculation #1.")
+			return []
 	
-	
+	# this is where we subdivide the original icosphere as many times as we want
 	for _i in range(0, iterations):
 		var new_tris = []
 		for tri in tris:
+			# split each tri into 4 (into a triforce)
 			var a = _get_middle_2(middle_point_index_cache, verts, tri.v[0], tri.v[1])
 			var b = _get_middle_2(middle_point_index_cache, verts, tri.v[1], tri.v[2])
 			var c = _get_middle_2(middle_point_index_cache, verts, tri.v[2], tri.v[0])
 			
-			new_tris.append(_add_triangle(tri.v[0], a, c))
-			new_tris.append(_add_triangle(tri.v[1], b, a))
-			new_tris.append(_add_triangle(tri.v[2], c, b))
-			new_tris.append(_add_triangle(a, b, c))
+			var new_tri_mid = _add_triangle(a, b, c)
+			var new_tri = []
+			new_tri.append(_add_triangle(tri.v[0], a, c))
+			new_tri.append(_add_triangle(tri.v[1], b, a))
+			new_tri.append(_add_triangle(tri.v[2], c, b))
+			
+			# update neighbors on the new tris
+			# we know the 3 neighbors for the middle tri
+			new_tri_mid.neighbors = [ new_tri[0], new_tri[1], new_tri[2] ]
+			
+			# the others are a bit more complicated. we know we're neighbored to the middle tri
+			new_tri[0].neighbors = [ new_tri_mid ]
+			new_tri[1].neighbors = [ new_tri_mid ]
+			new_tri[2].neighbors = [ new_tri_mid ]
+			
+			# other neighbors are in other parent triangles
+			for t1 in new_tri:
+				for neighbor in tri.neighbors:
+					for t2 in neighbor.children:
+						# search neighbor children for tris that match 2 verts in our children
+						var shared_count = 0
+						for v1 in t1.v:
+							for v2 in t2.v:
+								if v1 == v2:
+									shared_count += 1
+						if shared_count == 2:
+							# add to our new tri
+							t1.neighbors.append(t2)
+							# also add our new tri to neighbor
+							t2.neighbors.append(t1)
+							
+				if t1.neighbors.size() > 3:
+					printerr("Tri has too many neighbors.")
+					return []
+					
+			# add our new tris as children
+			tri.children = [ new_tri[0], new_tri[1], new_tri[2], new_tri_mid ]
+			
+			new_tris.append(new_tri[0])
+			new_tris.append(new_tri[1])
+			new_tris.append(new_tri[2])
+			new_tris.append(new_tri_mid)
 			
 		tris = new_tris
+		
+	# check neighbors are set correctly
+	for tri in tris:
+		if tri.neighbors.size() != 3:
+			printerr("Error in neighbor calculation #2.")
+			return []
 	
 	# we're now going to remove edges randomly so we get a grid of quads and tris
 	var polys = []
@@ -140,13 +202,8 @@ func generate_icosphere(verts, iterations : int):
 			if i == j:
 				continue
 				
-			var test_tri = Tri.new()
-			test_tri.v.append(tris[j].v[0])
-			test_tri.v.append(tris[j].v[1])
-			test_tri.v.append(tris[j].v[2])
-			
-			if test_tri.has_edge(rand_edge):
-				opposite = test_tri
+			if tris[j].has_edge(rand_edge):
+				opposite = tris[j]
 				break
 				
 		var opposite_verts = [ opposite.v[0], opposite.v[1], opposite.v[2] ]
@@ -177,53 +234,128 @@ func generate_icosphere(verts, iterations : int):
 		used_edges.append(Vector2(min(opposite.v[1], opposite.v[2]), max(opposite.v[1], opposite.v[2])))
 		used_edges.append(Vector2(min(opposite.v[2], opposite.v[0]), max(opposite.v[2], opposite.v[0])))
 		
+		# setup neighbors
+		for n in tri.neighbors:
+			if n == opposite:
+				continue
+			quad.neighbors.append(n)
+			n.neighbors.erase(tri)
+			n.neighbors.append(quad)
+			
+		for n in opposite.neighbors:
+			if n == tri:
+				continue
+			quad.neighbors.append(n)
+			n.neighbors.erase(opposite)
+			n.neighbors.append(quad)
+		
 		polys.append(quad)
+		
+	# check neighbors are set correctly
+	for poly in polys:
+		if poly.v.size() != poly.neighbors.size():
+			printerr("Error in neighbor calculation #3.")
+			return []
 		
 	# next, split each quad into 4, and each tri into 3 (to make quads)
 	var new_polys = []
 	for poly in polys:
 		if poly.type == "quad":
-			var quad := poly as Quad
-			var a = _get_middle_2(middle_point_index_cache, verts, quad.v[0], quad.v[1])
-			var b = _get_middle_2(middle_point_index_cache, verts, quad.v[1], quad.v[2])
-			var c = _get_middle_2(middle_point_index_cache, verts, quad.v[2], quad.v[3])
-			var d = _get_middle_2(middle_point_index_cache, verts, quad.v[3], quad.v[0])
-			var m = _get_middle_4(middle_point_index_cache, verts, quad.v[0], quad.v[1], quad.v[2], quad.v[3])
+			var parent_quad := poly as Quad
+			var a = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[0], parent_quad.v[1])
+			var b = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[1], parent_quad.v[2])
+			var c = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[2], parent_quad.v[3])
+			var d = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[3], parent_quad.v[0])
+			var m = _get_middle_4(middle_point_index_cache, verts, parent_quad.v[0], parent_quad.v[1], parent_quad.v[2], parent_quad.v[3])
 
-			var new_quad = Quad.new()
-			new_quad.v = [ quad.v[0], a, m, d ]
-			new_polys.append(new_quad)
+			var quads = [ Quad.new(), Quad.new(), Quad.new(), Quad.new() ]
+			quads[0].v = [ parent_quad.v[0], a, m, d ]
+			new_polys.append(quads[0])
 			
-			new_quad = Quad.new()
-			new_quad.v = [ quad.v[1], b, m, a ]
-			new_polys.append(new_quad)
+			quads[1].v = [ parent_quad.v[1], b, m, a ]
+			new_polys.append(quads[1])
 			
-			new_quad = Quad.new()
-			new_quad.v = [ quad.v[2], c, m, b ]
-			new_polys.append(new_quad)
+			quads[2].v = [ parent_quad.v[2], c, m, b ]
+			new_polys.append(quads[2])
 			
-			new_quad = Quad.new()
-			new_quad.v = [ quad.v[3], d, m, c ]
-			new_polys.append(new_quad)
+			quads[3].v = [ parent_quad.v[3], d, m, c ]
+			new_polys.append(quads[3])
+			
+			quads[0].neighbors = [ quads[3], quads[1] ]
+			quads[1].neighbors = [ quads[0], quads[2] ]
+			quads[2].neighbors = [ quads[1], quads[3] ]
+			quads[3].neighbors = [ quads[2], quads[0] ]
+			
+			# setup surrounding neighbors
+			for q1 in quads:
+				for n in parent_quad.neighbors:
+					for q2 in n.children:
+						# for each possible neighbor poly, find those that share 2 verts
+						var shared_count = 0
+						for v1 in q1.v:
+							for v2 in q2.v:
+								if v1 == v2:
+									shared_count += 1
+						if shared_count == 2:
+							# add to our new tri
+							q1.neighbors.append(q2)
+							# also add our new tri to neighbor
+							q2.neighbors.append(q1)
+							
+				if q1.neighbors.size() > 4:
+					printerr("Quad has too many neighbors.")
+					return []
+							
+			poly.children = [ quads[0], quads[1], quads[2], quads[3] ]
 		
 		if poly.type == "tri":
-			var tri := poly as Tri
-			var a = _get_middle_2(middle_point_index_cache, verts, tri.v[0], tri.v[1])
-			var b = _get_middle_2(middle_point_index_cache, verts, tri.v[1], tri.v[2])
-			var c = _get_middle_2(middle_point_index_cache, verts, tri.v[2], tri.v[0])
-			var m = _get_middle_3(middle_point_index_cache, verts, tri.v[0], tri.v[1], tri.v[2])
+			var parent_tri := poly as Tri
+			var a = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[0], parent_tri.v[1])
+			var b = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[1], parent_tri.v[2])
+			var c = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[2], parent_tri.v[0])
+			var m = _get_middle_3(middle_point_index_cache, verts, parent_tri.v[0], parent_tri.v[1], parent_tri.v[2])
 
-			var new_quad = Quad.new()
-			new_quad.v = [ c, tri.v[0], a, m ]
-			new_polys.append(new_quad)
+			var quads = [ Quad.new(), Quad.new(), Quad.new() ]
+			quads[0].v = [ c, parent_tri.v[0], a, m ]
+			new_polys.append(quads[0])
 
-			new_quad = Quad.new()
-			new_quad.v = [ a, tri.v[1], b, m ]
-			new_polys.append(new_quad)
+			quads[1].v = [ a, parent_tri.v[1], b, m ]
+			new_polys.append(quads[1])
 
-			new_quad = Quad.new()
-			new_quad.v = [ b, tri.v[2], c, m ]
-			new_polys.append(new_quad)
+			quads[2].v = [ b, parent_tri.v[2], c, m ]
+			new_polys.append(quads[2])
+			
+			quads[0].neighbors = [ quads[1], quads[2] ]
+			quads[1].neighbors = [ quads[0], quads[2] ]
+			quads[2].neighbors = [ quads[0], quads[1] ]
+			
+			# setup surrounding neighbors
+			for q1 in quads:
+				for n in parent_tri.neighbors:
+					for q2 in n.children:
+						# for each possible neighbor poly, find those that share 2 verts
+						var shared_count = 0
+						for v1 in q1.v:
+							for v2 in q2.v:
+								if v1 == v2:
+									shared_count += 1
+						if shared_count == 2:
+							# add to our new tri
+							q1.neighbors.append(q2)
+							# also add our new tri to neighbor
+							q2.neighbors.append(q1)
+							
+				if q1.neighbors.size() > 4:
+					printerr("Quad has too many neighbors.")
+					return []
+							
+			poly.children = [ quads[0], quads[1], quads[2] ]
+			
+	# check neighbors are set correctly
+	for poly in new_polys:
+		if poly.v.size() != poly.neighbors.size():
+			printerr("Error in neighbor calculation #4.")
+			return []
 
 	return new_polys
 	
