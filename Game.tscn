@@ -1,0 +1,35 @@
+[gd_scene load_steps=7 format=2]
+
+[ext_resource path="res://src/Game.gd" type="Script" id=1]
+[ext_resource path="res://src/Camera.gd" type="Script" id=2]
+[ext_resource path="res://assets/shaders/PlanetMaterial.shader" type="Shader" id=3]
+[ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
+
+[sub_resource type="ShaderMaterial" id=1]
+shader = ExtResource( 3 )
+
+[sub_resource type="ShaderMaterial" id=3]
+shader = ExtResource( 4 )
+
+[node name="Game" type="Spatial"]
+script = ExtResource( 1 )
+material = SubResource( 1 )
+radius = 3.735
+noise_octaves = 1
+noise_period = 0.0
+
+[node name="Globe" type="MeshInstance" parent="."]
+
+[node name="GlobeWireframe" type="MeshInstance" parent="."]
+material_override = SubResource( 3 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( 0.512717, -0.617688, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
+
+[node name="HGimbal" type="Spatial" parent="."]
+script = ExtResource( 2 )
+
+[node name="VGimbal" type="Spatial" parent="HGimbal"]
+
+[node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7.74198 )
