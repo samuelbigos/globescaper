@@ -359,52 +359,49 @@ func generate_icosphere(verts, iterations : int):
 
 	return new_polys
 	
-func get_icosphere_mesh(ico_polys, ico_verts):
+func get_icosphere_mesh(ico_polys, ico_verts, colours):
 	var normals = []
 	var colors = []
 	
-	var count = 0
 	var mesh_verts = []
 	for poly in ico_polys:
-		var tris = []
-		if poly.type == "tri":
-			var rand_col = Color(_rng.randf(), _rng.randf(), _rng.randf())
-			var tri : Tri = poly as Tri
-			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[0]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[1]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[2]]))
-			normals.append(tri.v[0])
-			normals.append(tri.v[1])
-			normals.append(tri.v[2])
-			colors.append(rand_col)
-			colors.append(rand_col)
-			colors.append(rand_col)
+
+		var colour = Color.red
+		if colours.has(poly):
+			colour = colours[poly]
+		
+#		if poly.type == "tri":
+#			var tri : Tri = poly as Tri
+#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[0]]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[1]]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[2]]))
+#			normals.append(tri.v[0])
+#			normals.append(tri.v[1])
+#			normals.append(tri.v[2])
+#			colors.append(colour)
+#			colors.append(colour)
+#			colors.append(colour)
 			
-		elif poly.type == "quad":
+		if poly.type == "quad":
 			var quad : Quad = poly as Quad
-			var rand_col = Color(_rng.randf(), _rng.randf(), _rng.randf())
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[0]]))
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[1]]))
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[3]]))
-			normals.append(quad.v[0])
-			normals.append(quad.v[1])
-			normals.append(quad.v[3])
-			colors.append(rand_col)
-			colors.append(rand_col)
-			colors.append(rand_col)
+			normals.append(ico_verts[quad.v[0]])
+			normals.append(ico_verts[quad.v[1]])
+			normals.append(ico_verts[quad.v[3]])
+			colors.append(colour)
+			colors.append(colour)
+			colors.append(colour)
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[1]]))
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[2]]))
 			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[3]]))
-			normals.append(quad.v[1])
-			normals.append(quad.v[2])
-			normals.append(quad.v[3])
-			colors.append(rand_col)
-			colors.append(rand_col)
-			colors.append(rand_col)
-				
-		count += 1
-#		if count > 10:
-#			break
+			normals.append(ico_verts[quad.v[1]])
+			normals.append(ico_verts[quad.v[2]])
+			normals.append(ico_verts[quad.v[3]])
+			colors.append(colour)
+			colors.append(colour)
+			colors.append(colour)
 	
 	var mesh_array = []
 	mesh_array.resize(Mesh.ARRAY_MAX)
@@ -418,29 +415,28 @@ func get_icosphere_wireframe(ico_polys, ico_verts):
 	var normals = []
 	var colors = []
 	
-	var count = 0
 	var mesh_verts = []
 	for poly in ico_polys:
-		var tris = []
-		if poly.type == "tri":
+		
+#		if poly.type == "tri":
+#
+#			var tri := poly as Tri
+#			var v0 = tri.v[0]
+#			var v1 = tri.v[1]
+#			var v2 = tri.v[2]
+#
+#			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
+#			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
+#
+#			for i in range(0, 6):
+#				normals.append(0)
+#				colors.append(Color.white)
 			
-			var tri := poly as Tri
-			var v0 = tri.v[0]
-			var v1 = tri.v[1]
-			var v2 = tri.v[2]
-
-			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
-			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
-			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
-			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
-			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
-			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
-
-			for i in range(0, 6):
-				normals.append(0)
-				colors.append(Color.white)
-			
-		elif poly.type == "quad":
+		if poly.type == "quad":
 			
 			var quad := poly as Quad
 			var edges = []
@@ -456,10 +452,6 @@ func get_icosphere_wireframe(ico_polys, ico_verts):
 				normals.append(edge.y)
 				colors.append(Color.white)
 				colors.append(Color.white)
-		
-		count += 1
-#		if count > 10:
-#			break
 						
 	var mesh_array = []
 	mesh_array.resize(Mesh.ARRAY_MAX)
@@ -534,4 +526,4 @@ func _get_tri_normal(a : Vector3, b : Vector3, c : Vector3) -> Vector3:
 # converts a unit vertex on our icosphere to the vertex on our planet, so we can apply deformations.
 func _unit_to_planet(vert : Vector3) -> Vector3:
 	var height = _radius + (_radius * _noise.get_noise_3d(vert.x, vert.y, vert.z) * _noise_influence)
-	return vert * height
+	return vert.normalized() * height
