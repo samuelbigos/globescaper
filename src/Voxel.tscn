@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=2]
+
+[sub_resource type="SphereMesh" id=1]
+
+[node name="Voxel" type="MeshInstance"]
+transform = Transform( 0.02, 0, 0, 0, 0.02, 0, 0, 0, 0.02, 0, 0, 0 )
+mesh = SubResource( 1 )
+material/0 = null
