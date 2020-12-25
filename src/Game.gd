@@ -4,7 +4,7 @@ class_name Game
 
 class Prototype:
 	var mesh = ""
-	var mesh_rot = 0
+	var mesh_rot := 0
 	var posX = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
 	var posZ = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
 	var posY = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
@@ -48,15 +48,14 @@ var _voxel_spheres = []
 var _tiles = []
 var _tile_meshes = []
 
-var _debug_generate = false
-var _debug_ratio = 0.0
-var _debug_mesh = null
+var _surface_generate = false
 
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
 
 onready var _globe = get_node("Globe")
 onready var _globe_wireframe = get_node("GlobeWireframe")
+onready var _globe_surface : MeshInstance = get_node("GlobeSurface")
 
 
 func _ready() -> void:
@@ -246,15 +245,13 @@ func _process(delta : float) -> void:
 		_voxel_spheres[closest_vert] = voxel
 		add_child(voxel)
 		
-		_debug_generate = true
-		_debug_ratio = 1.0
+		_surface_generate = true
 		
-	if _debug_generate:
-		_debug_generate = false
-		#_debug_ratio = min(1.0, _debug_ratio + delta * 0.05)
-		
-		if _debug_mesh != null:
-			remove_child(_debug_mesh)
+	if _surface_generate:
+		_surface_generate = false
+				
+		var surface_mesh = ArrayMesh.new()
+		_globe_surface.set_mesh(surface_mesh)
 		
 		for i in range(_icosphere_polys.size()):
 			var poly = _icosphere_polys[i] as Icosphere.Quad
@@ -290,51 +287,21 @@ func _process(delta : float) -> void:
 					break
 			
 			if matched:
-				#var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
-				var tile_mesh : Mesh = load("res://assets/tiles/" + "cube_monkey" + ".obj")
+				var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
 				var tile_arrays = tile_mesh.surface_get_arrays(0)
 				
 				### transform the mesh to fit the tile
 				# get the final position of all the corner verts
 				var corner_verts_pos = []
-				corner_verts_pos.append(_icosphere_verts[poly.v[0]]) # bot
-				corner_verts_pos.append(_icosphere_verts[poly.v[1]]) # bot
-				corner_verts_pos.append(_icosphere_verts[poly.v[2]]) # bot
-				corner_verts_pos.append(_icosphere_verts[poly.v[3]]) # bot
-				corner_verts_pos.append(_icosphere_verts[poly.v[0]] * 1.25) # top
-				corner_verts_pos.append(_icosphere_verts[poly.v[1]] * 1.25) # top
-				corner_verts_pos.append(_icosphere_verts[poly.v[2]] * 1.25) # top
-				corner_verts_pos.append(_icosphere_verts[poly.v[3]] * 1.25) # top
+				for j in range(0, 4):
+					corner_verts_pos.append(_icosphere_verts[poly.v[(j - 1 - matched_prot.mesh_rot) % 4]])
 				
 				var tile_centre = _icosphere_verts[poly.v[0]]
 				tile_centre += _icosphere_verts[poly.v[1]]
 				tile_centre += _icosphere_verts[poly.v[2]]
 				tile_centre += _icosphere_verts[poly.v[3]]
 				tile_centre /= 4.0
-				
-				var trans := Transform.IDENTITY
-				# rotate so that up is always the surface normal
-				var n = tile_centre.normalized()
-				var r = Vector3(0.0, 1.0, 0.0)
-				var e = r.cross(n).normalized()
-				var d = n.cross(e).normalized()
-				trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
-				# elevate out of the sphere
-				trans.origin += tile_centre.normalized() * 0.5
-				# rescale
-				trans = trans.scaled(Vector3(0.1, 0.1, 0.1))
-				
-				# the 8 corners of the mesh
-				var cube_corners = []
-				cube_corners.append(Vector3(-1.0, -1.0, -1.0))
-				cube_corners.append(Vector3(1.0, -1.0, -1.0))
-				cube_corners.append(Vector3(1.0, -1.0, 1.0))
-				cube_corners.append(Vector3(-1.0, -1.0, 1.0))
-				cube_corners.append(Vector3(-1.0, 1.0, -1.0))
-				cube_corners.append(Vector3(1.0, 1.0, -1.0))
-				cube_corners.append(Vector3(1.0, 1.0, 1.0))
-				cube_corners.append(Vector3(-1.0, 1.0, 1.0))
-				
+								
 				var colours = PoolColorArray()
 				for c in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
 					colours.append(Color.white)
@@ -344,54 +311,34 @@ func _process(delta : float) -> void:
 				# transform each vert in the prototype mesh
 				for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
 					var vert : Vector3 = tile_arrays[Mesh.ARRAY_VERTEX][v]
-					var vert_height = vert.y + 1.0
 					
-					var tri1 = [ cube_corners[0], cube_corners[1], cube_corners[2] ]
-					var tri2 = [ cube_corners[2], cube_corners[3], cube_corners[0] ]
+					# flatten 3D vert 
+					var vert_2d = Vector2(vert.x, vert.z)
 					
-					var bary_coords_1 = {}
-					var bary_coords_2 = {}
-					barycentric(vert, tri1[0], tri1[1], tri1[2], bary_coords_1)
-					barycentric(vert, tri2[0], tri2[1], tri2[2], bary_coords_2)
+					# get vert coords as a ratio along the x/y axis
+					# assumes input vert is inside a 2x2 square centred at 0,0
+					var vert_x = (vert_2d.x + 1.0) / 2.0
+					var vert_y = (vert_2d.y + 1.0) / 2.0
 					
-					var col = Color()
-					var new_vert = Vector3(0.0, 0.0, 0.0)
-					if bary_coords_1["v"] >= 0.0 and bary_coords_1["w"] >= 0.0 and bary_coords_1["u"] >= 0.0:
-						new_vert += (corner_verts_pos[0] - tile_centre) * bary_coords_1["u"]
-						new_vert += (corner_verts_pos[1] - tile_centre) * bary_coords_1["v"]
-						new_vert += (corner_verts_pos[2] - tile_centre) * bary_coords_1["w"]
-					else:
-						new_vert += (corner_verts_pos[2] - tile_centre) * bary_coords_2["u"]
-						new_vert += (corner_verts_pos[3] - tile_centre) * bary_coords_2["v"]
-						new_vert += (corner_verts_pos[0] - tile_centre) * bary_coords_2["w"]
-						
-					new_vert = new_vert + (tile_centre.normalized() * vert_height) * 0.1
+					# translate the sphere quad corners to be centred on the origin
+					var new_points_x1 = [corner_verts_pos[0], corner_verts_pos[1]]
+					var new_points_x2 = [corner_verts_pos[3], corner_verts_pos[2]]
 					
-					var ratio = _debug_ratio
-					tile_arrays[Mesh.ARRAY_VERTEX][v] = new_vert * ratio + vert * (1.0 - ratio) * 0.5
-									
-					if vert.x == -1.0 and vert.z == 1.0:
-						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.red
-					if vert.x == 1.0 and vert.z == 1.0:
-						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.green
-					if vert.x == 1.0 and vert.z == -1.0:
-						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.blue
-					if vert.x == -1.0 and vert.z == -1.0:
-						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.yellow
-						
+					# calculate new vert position using quad corners and weights we found above
+					var new_x1 = lerp(new_points_x1[0], new_points_x1[1], vert_x)
+					var new_x2 = lerp(new_points_x2[0], new_points_x2[1], vert_x)
+					var new_vert = lerp(new_x1, new_x2, vert_y)
+					
+					# add height
+					new_vert = new_vert + (new_vert.normalized() * (vert.y + 1.0)) * 0.1
+					
+					tile_arrays[Mesh.ARRAY_VERTEX][v] = new_vert
 					tile_arrays[Mesh.ARRAY_COLOR][v] = Color.white
 				
-				### create the mesh instance
-				var tile = MeshInstance.new()
-				var tile_arraymesh = ArrayMesh.new()
-				tile_arraymesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-				tile_arraymesh.surface_set_material(0, material)
+				# add the new mesh to the array mesh
+				surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
+				surface_mesh.surface_set_material(0, material)
 				
-				tile.set_mesh(tile_arraymesh)
-				tile.transform.origin = tile_centre
-				
-				#_debug_mesh = tile
-				add_child(tile)
 		
 	var colours = {}
 	for poly in _vert_poly_neighbors[closest_vert]:
@@ -408,20 +355,6 @@ func _process(delta : float) -> void:
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 	
-func barycentric(var p : Vector3, var a : Vector3, var b : Vector3, var c : Vector3, var output):
-	var v0 = b - a
-	var v1 = c - a
-	var v2 = p - a
-	var d00 = v0.dot(v0)
-	var d01 = v0.dot(v1)
-	var d11 = v1.dot(v1)
-	var d20 = v2.dot(v0)
-	var d21 = v2.dot(v1)
-	var denom = d00 * d11 - d01 * d01
-	output["v"] = (d11 * d20 - d01 * d21) / denom
-	output["w"] = (d00 * d21 - d01 * d20) / denom
-	output["u"] = 1.0 - output["v"] - output["w"]
-
 func set_iterations(val : int) -> void: 
 	iterations = val
 	if _generated:

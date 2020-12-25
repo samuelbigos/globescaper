@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -8,6 +8,8 @@
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 3 )
+
+[sub_resource type="ArrayMesh" id=4]
 
 [sub_resource type="ShaderMaterial" id=2]
 shader = ExtResource( 4 )
@@ -23,6 +25,9 @@ voxel_scene = ExtResource( 5 )
 
 [node name="Globe" type="MeshInstance" parent="."]
 
+[node name="GlobeSurface" type="MeshInstance" parent="."]
+mesh = SubResource( 4 )
+
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
 material_override = SubResource( 2 )
 
@@ -35,7 +40,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.45602 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.03948 )
 
 [node name="Area" type="Area" parent="."]
 

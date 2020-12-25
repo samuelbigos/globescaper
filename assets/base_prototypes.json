@@ -62,7 +62,20 @@
       "negZ": "2s",
       "negY": "1i",
       "exclude": "",
-      "top": [0, 0, 0, 0],
+      "top": [0, 0, 0, 0], 
       "bot": [1, 1, 1, 1]
+   },
+   "5": {
+      "mesh_name": "1010-0000",
+      "mesh_rotation": 0,
+      "posX": "2s",
+      "posZ": "2s",
+      "posY": "0i",
+      "negX": "2s",
+      "negZ": "2s",
+      "negY": "1i",
+      "exclude": "",
+      "top": [0, 0, 0, 0], 
+      "bot": [1, 0, 1, 0]
    }
 }
