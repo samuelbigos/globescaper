@@ -18,6 +18,8 @@ class Prototype:
 	var n_negX = []
 	var n_negZ = []
 	var n_negY = []
+	var top = []
+	var bot = []
 
 const Icosphere = preload("Icosphere.gd")
 
@@ -39,11 +41,16 @@ var _ico_wireframe_mesh = []
 var _generated_wireframe := false
 var _icosphere_verts = []
 var _icosphere_polys = []
+var _vert_poly_neighbors = []
 var _prototypes = []
 var _voxels = []
 var _voxel_spheres = []
 var _tiles = []
 var _tile_meshes = []
+
+var _debug_generate = false
+var _debug_ratio = 0.0
+var _debug_mesh = null
 
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
@@ -94,6 +101,8 @@ func _load_prototype_data():
 		prototype.n_negX = []
 		prototype.n_negZ = []
 		prototype.n_negY = []
+		prototype.top = p["top"]
+		prototype.bot = p["bot"]
 		
 		_prototypes.append(prototype)
 	
@@ -124,6 +133,16 @@ func _load_prototype_data():
 			new_p.n_negX = []
 			new_p.n_negY = []
 			new_p.n_negZ = []
+			new_p.top = []
+			new_p.top.append(prototype.top[(0 + i) % 4])
+			new_p.top.append(prototype.top[(1 + i) % 4])
+			new_p.top.append(prototype.top[(2 + i) % 4])
+			new_p.top.append(prototype.top[(3 + i) % 4])
+			new_p.bot = []
+			new_p.bot.append(prototype.bot[(0 + i) % 4])
+			new_p.bot.append(prototype.bot[(1 + i) % 4])
+			new_p.bot.append(prototype.bot[(2 + i) % 4])
+			new_p.bot.append(prototype.bot[(3 + i) % 4])
 			_prototypes.append(new_p)
 			
 	# calculate valid neighbors
@@ -192,8 +211,21 @@ func _generate() -> void:
 	
 	_voxels = []
 	_voxels.resize(_icosphere_verts.size())
+	_voxel_spheres.resize(_icosphere_verts.size())
 	for i in range(0, _voxels.size()):
 		_voxels[i] = 0
+		
+	# build a dictionary of all poly neighbors for each vert.
+	_vert_poly_neighbors.resize(_icosphere_verts.size())
+	for i in range(0, _icosphere_verts.size()):
+		_vert_poly_neighbors[i] = []
+		
+	for i in range(0, _icosphere_polys.size()):
+		for j in range(0, _icosphere_polys[i].neighbors.size()):
+			for v in range(0, _icosphere_polys[i].neighbors[j].v.size()):
+				var vert = _icosphere_polys[i].neighbors[j].v[v]
+				if not _vert_poly_neighbors[vert].has(_icosphere_polys[i].neighbors[j]):
+					_vert_poly_neighbors[vert].append(_icosphere_polys[i].neighbors[j])
 		
 	_generated = true
 		
@@ -214,12 +246,156 @@ func _process(delta : float) -> void:
 		_voxel_spheres[closest_vert] = voxel
 		add_child(voxel)
 		
+		_debug_generate = true
+		_debug_ratio = 1.0
 		
+	if _debug_generate:
+		_debug_generate = false
+		#_debug_ratio = min(1.0, _debug_ratio + delta * 0.05)
+		
+		if _debug_mesh != null:
+			remove_child(_debug_mesh)
+		
+		for i in range(_icosphere_polys.size()):
+			var poly = _icosphere_polys[i] as Icosphere.Quad
+			# build an array of corners we need to match
+			var corners = []
+			corners.append(_voxels[poly.v[0]]) # bottom
+			corners.append(_voxels[poly.v[1]]) # bottom
+			corners.append(_voxels[poly.v[2]]) # bottom
+			corners.append(_voxels[poly.v[3]]) # bottom
+			corners.append(0) # top
+			corners.append(0) # top
+			corners.append(0) # top
+			corners.append(0) # top
+			
+			if not corners.has(1):
+				continue
+			
+			# find a prototype that matches
+			var matched = false
+			var matched_prot = null
+			for prototype in _prototypes:
+				if prototype.bot[0] == corners[0] and \
+					prototype.bot[1] == corners[1] and \
+					prototype.bot[2] == corners[2] and \
+					prototype.bot[3] == corners[3] and \
+					prototype.top[0] == corners[4] and \
+					prototype.top[1] == corners[5] and \
+					prototype.top[2] == corners[6] and \
+					prototype.top[3] == corners[7]:
+					
+					matched = true
+					matched_prot = prototype
+					break
+			
+			if matched:
+				#var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
+				var tile_mesh : Mesh = load("res://assets/tiles/" + "cube_monkey" + ".obj")
+				var tile_arrays = tile_mesh.surface_get_arrays(0)
+				
+				### transform the mesh to fit the tile
+				# get the final position of all the corner verts
+				var corner_verts_pos = []
+				corner_verts_pos.append(_icosphere_verts[poly.v[0]]) # bot
+				corner_verts_pos.append(_icosphere_verts[poly.v[1]]) # bot
+				corner_verts_pos.append(_icosphere_verts[poly.v[2]]) # bot
+				corner_verts_pos.append(_icosphere_verts[poly.v[3]]) # bot
+				corner_verts_pos.append(_icosphere_verts[poly.v[0]] * 1.25) # top
+				corner_verts_pos.append(_icosphere_verts[poly.v[1]] * 1.25) # top
+				corner_verts_pos.append(_icosphere_verts[poly.v[2]] * 1.25) # top
+				corner_verts_pos.append(_icosphere_verts[poly.v[3]] * 1.25) # top
+				
+				var tile_centre = _icosphere_verts[poly.v[0]]
+				tile_centre += _icosphere_verts[poly.v[1]]
+				tile_centre += _icosphere_verts[poly.v[2]]
+				tile_centre += _icosphere_verts[poly.v[3]]
+				tile_centre /= 4.0
+				
+				var trans := Transform.IDENTITY
+				# rotate so that up is always the surface normal
+				var n = tile_centre.normalized()
+				var r = Vector3(0.0, 1.0, 0.0)
+				var e = r.cross(n).normalized()
+				var d = n.cross(e).normalized()
+				trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
+				# elevate out of the sphere
+				trans.origin += tile_centre.normalized() * 0.5
+				# rescale
+				trans = trans.scaled(Vector3(0.1, 0.1, 0.1))
+				
+				# the 8 corners of the mesh
+				var cube_corners = []
+				cube_corners.append(Vector3(-1.0, -1.0, -1.0))
+				cube_corners.append(Vector3(1.0, -1.0, -1.0))
+				cube_corners.append(Vector3(1.0, -1.0, 1.0))
+				cube_corners.append(Vector3(-1.0, -1.0, 1.0))
+				cube_corners.append(Vector3(-1.0, 1.0, -1.0))
+				cube_corners.append(Vector3(1.0, 1.0, -1.0))
+				cube_corners.append(Vector3(1.0, 1.0, 1.0))
+				cube_corners.append(Vector3(-1.0, 1.0, 1.0))
+				
+				var colours = PoolColorArray()
+				for c in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
+					colours.append(Color.white)
+					
+				tile_arrays[Mesh.ARRAY_COLOR] = colours
+				
+				# transform each vert in the prototype mesh
+				for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
+					var vert : Vector3 = tile_arrays[Mesh.ARRAY_VERTEX][v]
+					var vert_height = vert.y + 1.0
+					
+					var tri1 = [ cube_corners[0], cube_corners[1], cube_corners[2] ]
+					var tri2 = [ cube_corners[2], cube_corners[3], cube_corners[0] ]
+					
+					var bary_coords_1 = {}
+					var bary_coords_2 = {}
+					barycentric(vert, tri1[0], tri1[1], tri1[2], bary_coords_1)
+					barycentric(vert, tri2[0], tri2[1], tri2[2], bary_coords_2)
+					
+					var col = Color()
+					var new_vert = Vector3(0.0, 0.0, 0.0)
+					if bary_coords_1["v"] >= 0.0 and bary_coords_1["w"] >= 0.0 and bary_coords_1["u"] >= 0.0:
+						new_vert += (corner_verts_pos[0] - tile_centre) * bary_coords_1["u"]
+						new_vert += (corner_verts_pos[1] - tile_centre) * bary_coords_1["v"]
+						new_vert += (corner_verts_pos[2] - tile_centre) * bary_coords_1["w"]
+					else:
+						new_vert += (corner_verts_pos[2] - tile_centre) * bary_coords_2["u"]
+						new_vert += (corner_verts_pos[3] - tile_centre) * bary_coords_2["v"]
+						new_vert += (corner_verts_pos[0] - tile_centre) * bary_coords_2["w"]
+						
+					new_vert = new_vert + (tile_centre.normalized() * vert_height) * 0.1
+					
+					var ratio = _debug_ratio
+					tile_arrays[Mesh.ARRAY_VERTEX][v] = new_vert * ratio + vert * (1.0 - ratio) * 0.5
+									
+					if vert.x == -1.0 and vert.z == 1.0:
+						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.red
+					if vert.x == 1.0 and vert.z == 1.0:
+						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.green
+					if vert.x == 1.0 and vert.z == -1.0:
+						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.blue
+					if vert.x == -1.0 and vert.z == -1.0:
+						tile_arrays[Mesh.ARRAY_COLOR][v] = Color.yellow
+						
+					tile_arrays[Mesh.ARRAY_COLOR][v] = Color.white
+				
+				### create the mesh instance
+				var tile = MeshInstance.new()
+				var tile_arraymesh = ArrayMesh.new()
+				tile_arraymesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
+				tile_arraymesh.surface_set_material(0, material)
+				
+				tile.set_mesh(tile_arraymesh)
+				tile.transform.origin = tile_centre
+				
+				#_debug_mesh = tile
+				add_child(tile)
 		
 	var colours = {}
-	for poly in _icosphere_polys:
-		if poly.v.has(closest_vert):
-			colours[poly] = Color.green
+	for poly in _vert_poly_neighbors[closest_vert]:
+		colours[poly] = Color.green
 	
 	var globe_mesh = ArrayMesh.new()
 	var globe_mesh_array = _icosphere.get_icosphere_mesh(_icosphere_polys, _icosphere_verts, colours)
@@ -231,6 +407,20 @@ func _process(delta : float) -> void:
 	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+	
+func barycentric(var p : Vector3, var a : Vector3, var b : Vector3, var c : Vector3, var output):
+	var v0 = b - a
+	var v1 = c - a
+	var v2 = p - a
+	var d00 = v0.dot(v0)
+	var d01 = v0.dot(v1)
+	var d11 = v1.dot(v1)
+	var d20 = v2.dot(v0)
+	var d21 = v2.dot(v1)
+	var denom = d00 * d11 - d01 * d01
+	output["v"] = (d11 * d20 - d01 * d21) / denom
+	output["w"] = (d00 * d21 - d01 * d20) / denom
+	output["u"] = 1.0 - output["v"] - output["w"]
 
 func set_iterations(val : int) -> void: 
 	iterations = val

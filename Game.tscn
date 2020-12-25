@@ -35,7 +35,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.07433 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.45602 )
 
 [node name="Area" type="Area" parent="."]
 
