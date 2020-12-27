@@ -32,6 +32,7 @@ export(float, 0.0, 2.0) var noise_period = 1.0 setget set_noise_period
 export(float, 0.0, 1.0) var noise_persistence = 0.8 setget set_noise_persistence
 export(float, 0.0, 1.0) var noise_influence = 0.5 setget set_noise_influence
 export var voxel_scene : PackedScene
+export var relax_time : float = 1.0
 
 var _generated := false
 var _icosphere = null
@@ -47,6 +48,7 @@ var _voxels = []
 var _voxel_spheres = []
 var _tiles = []
 var _tile_meshes = []
+var _relax_timer = 0.0
 
 var _surface_generate = false
 
@@ -227,6 +229,7 @@ func _generate() -> void:
 					_vert_poly_neighbors[vert].append(_icosphere_polys[i].neighbors[j])
 		
 	_generated = true
+	_relax_timer = relax_time
 		
 func _process(delta : float) -> void:
 	
@@ -320,17 +323,14 @@ func _process(delta : float) -> void:
 					var vert_x = (vert_2d.x + 1.0) / 2.0
 					var vert_y = (vert_2d.y + 1.0) / 2.0
 					
-					# translate the sphere quad corners to be centred on the origin
-					var new_points_x1 = [corner_verts_pos[0], corner_verts_pos[1]]
-					var new_points_x2 = [corner_verts_pos[3], corner_verts_pos[2]]
-					
 					# calculate new vert position using quad corners and weights we found above
-					var new_x1 = lerp(new_points_x1[0], new_points_x1[1], vert_x)
-					var new_x2 = lerp(new_points_x2[0], new_points_x2[1], vert_x)
+					var new_x1 = lerp(corner_verts_pos[0], corner_verts_pos[1], vert_x)
+					var new_x2 = lerp(corner_verts_pos[3], corner_verts_pos[2], vert_x)
 					var new_vert = lerp(new_x1, new_x2, vert_y)
 					
-					# add height
-					new_vert = new_vert + (new_vert.normalized() * (vert.y + 1.0)) * 0.1
+					# add height (map to a hardcoded fraction of the sphere radius for now)
+					var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
+					new_vert += new_vert.normalized() * vert_height * 0.1
 					
 					tile_arrays[Mesh.ARRAY_VERTEX][v] = new_vert
 					tile_arrays[Mesh.ARRAY_COLOR][v] = Color.white
@@ -343,6 +343,36 @@ func _process(delta : float) -> void:
 	var colours = {}
 	for poly in _vert_poly_neighbors[closest_vert]:
 		colours[poly] = Color.green
+		
+	# relaxation
+	if _relax_timer > 0.0:
+		_relax_timer -= delta
+		
+		var forces = []
+		for i in range(0, _icosphere_verts.size()):
+			forces.append(Vector3())
+
+		for poly in _icosphere_polys:
+			var force = Vector3()
+			
+			var center = Vector3()
+			for i in range(0, 4):
+				center += _icosphere_verts[poly.v[i]]
+			center /= 4.0
+			
+			var rot_matrix = Transform.IDENTITY.rotated(center.normalized(), PI * 0.5)
+			
+			for i in range(0, 4):
+				force += _icosphere_verts[poly.v[i]] - center
+				force = rot_matrix.xform(force)
+			force /= 4.0
+			
+			for i in range(0, 4):
+				forces[poly.v[i]] += center + force - _icosphere_verts[poly.v[i]]
+				force = rot_matrix.xform(force)
+				
+		for i in range(0, _icosphere_verts.size()):
+			_icosphere_verts[i] = (_icosphere_verts[i] + forces[i] * 0.05).normalized() * radius
 	
 	var globe_mesh = ArrayMesh.new()
 	var globe_mesh_array = _icosphere.get_icosphere_mesh(_icosphere_polys, _icosphere_verts, colours)
