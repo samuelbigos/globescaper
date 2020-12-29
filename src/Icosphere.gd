@@ -366,7 +366,7 @@ func get_icosphere_mesh(ico_polys, ico_verts, colours):
 	var mesh_verts = []
 	for poly in ico_polys:
 
-		var colour = Color.red
+		var colour = Color.white
 		if colours.has(poly):
 			colour = colours[poly]
 		

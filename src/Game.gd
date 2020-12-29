@@ -5,6 +5,7 @@ class_name Game
 class Prototype:
 	var mesh = ""
 	var mesh_rot := 0
+	var mirror := 0
 	var posX = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
 	var posZ = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
 	var posY = { "#": 0, "i": true, "s": false, "f": false, "r": 0 }
@@ -23,16 +24,14 @@ class Prototype:
 
 const Icosphere = preload("Icosphere.gd")
 
-export var material : Material
+export var land_material : Material
+export var water_material : Material
 export(float, 0.1, 10.0) var radius = 1.0 setget set_radius
 export(int, 0, 7) var iterations = 2 setget set_iterations
-export(float, 0.0, 10.0) var noise_lacunarity = 3.0 setget set_noise_lacunarity
-export(int, 1, 9) var noise_octaves = 3 setget set_noise_octaves
-export(float, 0.0, 2.0) var noise_period = 1.0 setget set_noise_period
-export(float, 0.0, 1.0) var noise_persistence = 0.8 setget set_noise_persistence
-export(float, 0.0, 1.0) var noise_influence = 0.5 setget set_noise_influence
-export var voxel_scene : PackedScene
-export var relax_time : float = 1.0
+export var relax_iterations : int = 30
+export var relax_iteration_delta : float = 0.05
+export var water_deep_colour : Color
+export var water_shallow_colour : Color
 
 var _generated := false
 var _icosphere = null
@@ -45,10 +44,8 @@ var _icosphere_polys = []
 var _vert_poly_neighbors = []
 var _prototypes = []
 var _voxels = []
-var _voxel_spheres = []
 var _tiles = []
 var _tile_meshes = []
-var _relax_timer = 0.0
 
 var _surface_generate = false
 
@@ -57,7 +54,8 @@ var _mouse_pos_on_globe := Vector3()
 
 onready var _globe = get_node("Globe")
 onready var _globe_wireframe = get_node("GlobeWireframe")
-onready var _globe_surface : MeshInstance = get_node("GlobeSurface")
+onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
+onready var _globe_land : MeshInstance = get_node("GlobeLand")
 
 
 func _ready() -> void:
@@ -88,7 +86,7 @@ func _load_prototype_data():
 	for p in prototypes_dict.values():
 		var prototype := Prototype.new()
 		prototype.mesh = p["mesh_name"]
-		prototype.mesh_rot = p["mesh_rotation"]
+		prototype.mirror = p["mirror"]
 		prototype.posX = _slot_from_string(p["posX"])
 		prototype.posZ = _slot_from_string(p["posZ"])
 		prototype.posY = _slot_from_string(p["posY"])
@@ -119,6 +117,7 @@ func _load_prototype_data():
 			var new_p := Prototype.new()
 			new_p.mesh = prototype.mesh
 			new_p.mesh_rot = i
+			new_p.mirror = prototype.mirror
 			new_p.posX = swizzles[i % 4]
 			new_p.posZ = swizzles[(i + 1) % 4]
 			new_p.posY = prototype["posY"]
@@ -189,21 +188,26 @@ func _match_v(p1, p2) -> bool:
 	
 func _generate() -> void:
 	_icosphere._radius = radius
-	_icosphere._noise_influence = noise_influence
-	_noise.lacunarity = noise_lacunarity
-	_noise.octaves = noise_octaves
-	_noise.period = noise_period
-	_noise.persistence = noise_persistence
 	
 	_icosphere_verts = []
 	_icosphere_polys = _icosphere.generate_icosphere(_icosphere_verts, iterations)
 	var colours = {}
 	
-	var globe_mesh = ArrayMesh.new()	
+	var globe_mesh = ArrayMesh.new()
 	var globe_mesh_array = _icosphere.get_icosphere_mesh(_icosphere_polys, _icosphere_verts, colours)
 	globe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, globe_mesh_array)
-	globe_mesh.surface_set_material(0, material)
 	_globe.set_mesh(globe_mesh)
+	
+	var ocean_mesh = ArrayMesh.new()
+	var ocean_mesh_array = globe_mesh_array.duplicate()
+	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * 1.08
+		
+	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
+	ocean_mesh.surface_set_material(0, water_material)
+	water_material.set_shader_param("u_deep_colour", water_deep_colour)
+	water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
+	_globe_ocean.set_mesh(ocean_mesh)
 	
 	var globe_wireframe_mesh = ArrayMesh.new()
 	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
@@ -212,7 +216,6 @@ func _generate() -> void:
 	
 	_voxels = []
 	_voxels.resize(_icosphere_verts.size())
-	_voxel_spheres.resize(_icosphere_verts.size())
 	for i in range(0, _voxels.size()):
 		_voxels[i] = 0
 		
@@ -227,11 +230,45 @@ func _generate() -> void:
 				var vert = _icosphere_polys[i].neighbors[j].v[v]
 				if not _vert_poly_neighbors[vert].has(_icosphere_polys[i].neighbors[j]):
 					_vert_poly_neighbors[vert].append(_icosphere_polys[i].neighbors[j])
+					
+	# relaxation
+	for iter in range(0, relax_iterations):
+		var forces = []
+		for i in range(0, _icosphere_verts.size()):
+			forces.append(Vector3())
+
+		for poly in _icosphere_polys:
+			var force = Vector3()
+			
+			# get centroid
+			var center = Vector3()
+			for i in range(0, 4):
+				center += _icosphere_verts[poly.v[i]]
+			center /= 4.0
+			
+			# create the rotation matrix to rotate our force vector in 90 degree steps around the centroid normal
+			var rot_matrix = Transform.IDENTITY.rotated(center.normalized(), PI * 0.5)
+			
+			# collect forces
+			for i in range(0, 4):
+				force += _icosphere_verts[poly.v[i]] - center
+				force = rot_matrix.xform(force)
+			force /= 4.0
+			
+			# store forces
+			for i in range(0, 4):
+				forces[poly.v[i]] += center + force - _icosphere_verts[poly.v[i]]
+				force = rot_matrix.xform(force)
+				
+		# apply all accumulated forces on every vert
+		for i in range(0, _icosphere_verts.size()):
+			_icosphere_verts[i] = (_icosphere_verts[i] + forces[i] * relax_iteration_delta).normalized() * radius
 		
 	_generated = true
-	_relax_timer = relax_time
 		
 func _process(delta : float) -> void:
+	
+	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().get_camera_transform().origin)
 	
 	var closest_vert = -1
 	var closest_dist = 9999.0
@@ -243,18 +280,13 @@ func _process(delta : float) -> void:
 
 	if Input.is_action_just_pressed("mouse_left"):
 		_voxels[closest_vert] = 1
-		var voxel = voxel_scene.instance()
-		voxel.transform.origin = _icosphere_verts[closest_vert]
-		_voxel_spheres[closest_vert] = voxel
-		add_child(voxel)
-		
 		_surface_generate = true
 		
 	if _surface_generate:
 		_surface_generate = false
 				
 		var surface_mesh = ArrayMesh.new()
-		_globe_surface.set_mesh(surface_mesh)
+		_globe_land.set_mesh(surface_mesh)
 		
 		for i in range(_icosphere_polys.size()):
 			var poly = _icosphere_polys[i] as Icosphere.Quad
@@ -291,7 +323,7 @@ func _process(delta : float) -> void:
 			
 			if matched:
 				var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
-				var tile_arrays = tile_mesh.surface_get_arrays(0)
+				var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
 				
 				### transform the mesh to fit the tile
 				# get the final position of all the corner verts
@@ -304,86 +336,55 @@ func _process(delta : float) -> void:
 				tile_centre += _icosphere_verts[poly.v[2]]
 				tile_centre += _icosphere_verts[poly.v[3]]
 				tile_centre /= 4.0
-								
-				var colours = PoolColorArray()
-				for c in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
-					colours.append(Color.white)
-					
-				tile_arrays[Mesh.ARRAY_COLOR] = colours
+				
+				var trans := Transform.IDENTITY
+				# rotate so that up is always the surface normal
+				var n = tile_centre.normalized()
+				var r = Vector3(0.0, 1.0, 0.0)
+				var e = r.cross(n).normalized()
+				var d = n.cross(e).normalized()
+				trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
 				
 				# transform each vert in the prototype mesh
 				for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
-					var vert : Vector3 = tile_arrays[Mesh.ARRAY_VERTEX][v]
+					tile_arrays[Mesh.ARRAY_VERTEX][v] = transform_vert(tile_arrays[Mesh.ARRAY_VERTEX][v], corner_verts_pos)
+					#tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
 					
-					# flatten 3D vert 
-					var vert_2d = Vector2(vert.x, vert.z)
 					
-					# get vert coords as a ratio along the x/y axis
-					# assumes input vert is inside a 2x2 square centred at 0,0
-					var vert_x = (vert_2d.x + 1.0) / 2.0
-					var vert_y = (vert_2d.y + 1.0) / 2.0
-					
-					# calculate new vert position using quad corners and weights we found above
-					var new_x1 = lerp(corner_verts_pos[0], corner_verts_pos[1], vert_x)
-					var new_x2 = lerp(corner_verts_pos[3], corner_verts_pos[2], vert_x)
-					var new_vert = lerp(new_x1, new_x2, vert_y)
-					
-					# add height (map to a hardcoded fraction of the sphere radius for now)
-					var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
-					new_vert += new_vert.normalized() * vert_height * 0.1
-					
-					tile_arrays[Mesh.ARRAY_VERTEX][v] = new_vert
-					tile_arrays[Mesh.ARRAY_COLOR][v] = Color.white
-				
 				# add the new mesh to the array mesh
 				surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-				surface_mesh.surface_set_material(0, material)
+				surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
 				
-		
-	var colours = {}
-	for poly in _vert_poly_neighbors[closest_vert]:
-		colours[poly] = Color.green
-		
-	# relaxation
-	if _relax_timer > 0.0:
-		_relax_timer -= delta
-		
-		var forces = []
-		for i in range(0, _icosphere_verts.size()):
-			forces.append(Vector3())
+				if matched_prot.mirror:
+					var mirrored_tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
+					for v in range(0, mirrored_tile_arrays[Mesh.ARRAY_VERTEX].size()):
+						var vert = mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v]
+						vert.x = -vert.x
+						vert.z = -vert.z
+						mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v] = transform_vert(vert, corner_verts_pos)
+						#mirrored_tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
+						
+					surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mirrored_tile_arrays)
+					surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
+					
 
-		for poly in _icosphere_polys:
-			var force = Vector3()
-			
-			var center = Vector3()
-			for i in range(0, 4):
-				center += _icosphere_verts[poly.v[i]]
-			center /= 4.0
-			
-			var rot_matrix = Transform.IDENTITY.rotated(center.normalized(), PI * 0.5)
-			
-			for i in range(0, 4):
-				force += _icosphere_verts[poly.v[i]] - center
-				force = rot_matrix.xform(force)
-			force /= 4.0
-			
-			for i in range(0, 4):
-				forces[poly.v[i]] += center + force - _icosphere_verts[poly.v[i]]
-				force = rot_matrix.xform(force)
-				
-		for i in range(0, _icosphere_verts.size()):
-			_icosphere_verts[i] = (_icosphere_verts[i] + forces[i] * 0.05).normalized() * radius
+func transform_vert(var vert : Vector3, var corners) -> Vector3:
+	# flatten 3D vert 
+	var vert_2d = Vector2(vert.x, vert.z)
 	
-	var globe_mesh = ArrayMesh.new()
-	var globe_mesh_array = _icosphere.get_icosphere_mesh(_icosphere_polys, _icosphere_verts, colours)
-	globe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, globe_mesh_array)
-	globe_mesh.surface_set_material(0, material)
-	_globe.set_mesh(globe_mesh)
+	# get vert coords as a ratio along the x/y axis
+	# assumes input vert is inside a 2x2 square centred at 0,0
+	var vert_x = (vert_2d.x + 1.0) / 2.0
+	var vert_y = (vert_2d.y + 1.0) / 2.0
 	
-	var globe_wireframe_mesh = ArrayMesh.new()
-	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
-	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+	# calculate new vert position using quad corners and weights we found above
+	var new_x1 = lerp(corners[0], corners[1], vert_x)
+	var new_x2 = lerp(corners[3], corners[2], vert_x)
+	var new_vert = lerp(new_x1, new_x2, vert_y)
+	
+	# add height (map to a hardcoded fraction of the sphere radius for now)
+	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
+	return new_vert.normalized() * (radius + (vert_height * 0.2))
 	
 func set_iterations(val : int) -> void: 
 	iterations = val
@@ -395,31 +396,6 @@ func set_radius(val : float) -> void:
 	if _generated:
 		_generate()
 		
-func set_noise_lacunarity(val : int) -> void: 
-	noise_lacunarity = val
-	if _generated:
-		_generate()
-	
-func set_noise_octaves(val : int) -> void: 
-	noise_octaves = val
-	if _generated:
-		_generate()
-	
-func set_noise_period(val : int) -> void: 
-	noise_period = val
-	if _generated:
-		_generate()
-	
-func set_noise_persistence(val : float) -> void: 
-	noise_persistence = val
-	if _generated:
-		_generate()
-
-func set_noise_influence(val : float) -> void: 
-	noise_influence = val
-	if _generated:
-		_generate()
-
 func _on_Area_mouse_entered():
 	_mouse_hover = true
 	

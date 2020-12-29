@@ -1,7 +1,7 @@
 {
    "0": {
       "mesh_name": "0000-0000",
-      "mesh_rotation": 0,
+      "mirror": 0,
       "posX": "0s",
       "posZ": "0s",
       "posY": "0i",
@@ -15,7 +15,7 @@
    },
    "1": {
       "mesh_name": "1000-0000",
-      "mesh_rotation": 0,
+      "mirror": 0,
       "posX": "1",
       "posZ": "0s",
       "posY": "0i",
@@ -28,7 +28,7 @@
    },
    "2": {
       "mesh_name": "1100-0000",
-      "mesh_rotation": 0,
+      "mirror": 0,
       "posX": "2s",
       "posZ": "1",
       "posY": "0i",
@@ -41,7 +41,7 @@
    },
    "3": {
       "mesh_name": "1110-0000",
-      "mesh_rotation": 0,
+      "mirror": 0,
       "posX": "2s",
       "posZ": "1",
       "posY": "0i",
@@ -54,7 +54,7 @@
    },
    "4": {
       "mesh_name": "1111-0000",
-      "mesh_rotation": 0,
+      "mirror": 0,
       "posX": "2s",
       "posZ": "2s",
       "posY": "0i",
@@ -66,8 +66,8 @@
       "bot": [1, 1, 1, 1]
    },
    "5": {
-      "mesh_name": "1010-0000",
-      "mesh_rotation": 0,
+      "mesh_name": "1000-0000",
+      "mirror": 1,
       "posX": "2s",
       "posZ": "2s",
       "posY": "0i",
