@@ -18,10 +18,16 @@ _global_script_classes=[ {
 "class": "Icosphere",
 "language": "GDScript",
 "path": "res://src/Icosphere.gd"
+}, {
+"base": "Node",
+"class": "WaveFunctionCollapse",
+"language": "GDScript",
+"path": "res://src/WaveFunctionCollapse.gd"
 } ]
 _global_script_class_icons={
 "Game": "",
-"Icosphere": ""
+"Icosphere": "",
+"WaveFunctionCollapse": ""
 }
 
 [application]
@@ -68,4 +74,5 @@ mouse_left={
 
 [rendering]
 
+quality/subsurface_scattering/quality=2
 environment/default_environment="res://default_env.tres"

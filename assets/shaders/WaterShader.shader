@@ -136,7 +136,7 @@ void fragment()
 		float linear_depth = -view.z;
 		
 		depth_difference = linear_depth - (FRAGCOORD.z / FRAGCOORD.w);
-		float max_depth = 0.15;
+		float max_depth = 0.5;
 		depth_difference = 1.0 - min(1.0, max(0.0, depth_difference / max_depth));
 		depth_difference = pow(depth_difference, 1.0);
 		
@@ -148,7 +148,7 @@ void fragment()
 	{
 		vec3 normal = NORMAL;
 		incidence = min(1.0, max(0.0, dot(normalize(VERTEX), -normal)));
-		incidence = pow(1.0 - incidence, 5.0);
+		incidence = pow(1.0 - incidence, 7.0);
 	}
 	
 	// water colour modulated by depth and incidence
@@ -156,17 +156,17 @@ void fragment()
 	
 	// add waves to the water
 	{
-		float wh_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME) * 0.01), 0.08, 3);
+		float wh_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME) * 0.05), 0.8, 3);
 		float wh_a = 0.0;
 		float wh_b = 0.05;
 		float wave_high = step(wh_a, wh_noise) * step(wh_noise, wh_b) * 0.1;
 		
-		float wl_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME + 99.0) * 0.01), 0.08, 3);
+		float wl_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME + 99.0) * 0.05), 0.8, 3);
 		float wl_a = 0.0;
 		float wl_b = 0.05;
 		float wave_low = 1.0 - step(wl_a, wl_noise) * step(wl_noise, wl_b) * 0.25;
 		
-		float shore_noise = get_noise_4d(vec4(VERTEX_MODEL * vec3(1.0, 0.5, 1.0), (TIME + 999.0) * 0.005), 0.01, 2);
+		float shore_noise = get_noise_4d(vec4(VERTEX_MODEL * vec3(1.0, 0.5, 1.0), (TIME + 999.0) * 0.025), 0.1, 2);
 		shore_noise *= 0.25;
 		float shore_step = ((1.0 - depth_difference) - 0.5) * 0.5;
 		float wave_shore = step(shore_step, shore_noise) * depth_difference;

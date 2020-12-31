@@ -2,80 +2,32 @@
    "0": {
       "mesh_name": "0000-0000",
       "mirror": 0,
-      "posX": "0s",
-      "posZ": "0s",
-      "posY": "0i",
-      "negX": "0s",
-      "negZ": "0s",
-      "negY": "0i",
-      "exclude": "",
-      "top": [0, 0, 0, 0],
-      "bot": [0, 0, 0, 0]
+      "corners": [0, 0, 0, 0]
       
    },
    "1": {
       "mesh_name": "1000-0000",
       "mirror": 0,
-      "posX": "1",
-      "posZ": "0s",
-      "posY": "0i",
-      "negX": "0s",
-      "negZ": "1f",
-      "negY": "1",
-      "exclude": "",
-      "top": [0, 0, 0, 0],
-      "bot": [1, 0, 0, 0]
+      "corners": [1, 0, 0, 0]
    },
    "2": {
       "mesh_name": "1100-0000",
       "mirror": 0,
-      "posX": "2s",
-      "posZ": "1",
-      "posY": "0i",
-      "negX": "0s",
-      "negZ": "1f",
-      "negY": "2",
-      "exclude": "",
-      "top": [0, 0, 0, 0],
-      "bot": [1, 1, 0, 0]
+      "corners": [1, 1, 0, 0]
    },
    "3": {
       "mesh_name": "1110-0000",
       "mirror": 0,
-      "posX": "2s",
-      "posZ": "1",
-      "posY": "0i",
-      "negX": "1",
-      "negZ": "2s",
-      "negY": "3",
-      "exclude": "",
-      "top": [0, 0, 0, 0],
-      "bot": [1, 1, 1, 0]
+      "corners": [1, 1, 1, 0]
    },
    "4": {
       "mesh_name": "1111-0000",
       "mirror": 0,
-      "posX": "2s",
-      "posZ": "2s",
-      "posY": "0i",
-      "negX": "2s",
-      "negZ": "2s",
-      "negY": "1i",
-      "exclude": "",
-      "top": [0, 0, 0, 0], 
-      "bot": [1, 1, 1, 1]
+      "corners": [1, 1, 1, 1]
    },
    "5": {
       "mesh_name": "1000-0000",
       "mirror": 1,
-      "posX": "2s",
-      "posZ": "2s",
-      "posY": "0i",
-      "negX": "2s",
-      "negZ": "2s",
-      "negY": "1i",
-      "exclude": "",
-      "top": [0, 0, 0, 0], 
-      "bot": [1, 0, 1, 0]
+      "corners": [1, 0, 1, 0]
    }
 }

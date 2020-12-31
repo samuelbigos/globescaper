@@ -489,37 +489,6 @@ func _add_vert(verts, vert : Vector3) -> void:
 	vert = vert.normalized()
 	verts.append(vert)
 	
-#func _update_mesh():
-#	assert(_mesh_array[Mesh.ARRAY_VERTEX].size() == _unit_vert_array.size())
-#	var verts = PoolVector3Array()
-#	for vert in _unit_vert_array:
-#		verts.append(_unit_to_planet(vert))
-#
-#	var normals = PoolVector3Array()
-#	normals.resize(verts.size())
-#
-#	var indices = _mesh_array[Mesh.ARRAY_INDEX]
-#	for i in range(0, indices.size(), 3):
-#		var v1 = verts[indices[i]]
-#		var v2 = verts[indices[i + 1]]
-#		var v3 = verts[indices[i + 2]]
-#		var normal = -_get_tri_normal(v1, v2, v3)
-#		normals[indices[i]] += normal
-#		normals[indices[i + 1]] += normal
-#		normals[indices[i + 2]] += normal
-#
-#	for i in range(0, normals.size()):
-#		normals[i] /= 5.0
-#
-#	_mesh_array[Mesh.ARRAY_VERTEX] = verts
-#	_mesh_array[Mesh.ARRAY_NORMAL] = normals
-#
-#	print("verts: %d" % [_mesh_array[Mesh.ARRAY_VERTEX].size()])
-#	print("normals: %d" % [_mesh_array[Mesh.ARRAY_NORMAL].size()])
-#	print("indices: %d" % [_mesh_array[Mesh.ARRAY_INDEX].size()])
-#
-#	return _mesh_array
-	
 func _get_tri_normal(a : Vector3, b : Vector3, c : Vector3) -> Vector3:
 	return (b - a).cross(c - b).normalized()
 

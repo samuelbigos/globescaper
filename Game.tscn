@@ -1,9 +1,10 @@
-[gd_scene load_steps=13 format=2]
+[gd_scene load_steps=14 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
 [ext_resource path="res://assets/shaders/WaterShader.shader" type="Shader" id=3]
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
+[ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
 [ext_resource path="res://assets/palette.png" type="Texture" id=6]
 [ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
 
@@ -28,17 +29,21 @@ shader_param/u_shallow_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_camera_pos = Vector3( 0, 0, 0 )
 shader_param/u_3d_noise = SubResource( 2 )
 
-[sub_resource type="ArrayMesh" id=4]
-
 [sub_resource type="ShaderMaterial" id=5]
 shader = ExtResource( 4 )
 
+[sub_resource type="ArrayMesh" id=4]
+
 [sub_resource type="SphereShape" id=6]
+radius = 10.0
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
 land_material = SubResource( 1 )
 water_material = SubResource( 3 )
+radius = 10.0
+iterations = 3
+relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
 
@@ -46,15 +51,17 @@ water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
 
-[node name="GlobeLand" type="MeshInstance" parent="."]
-mesh = SubResource( 4 )
-
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
 visible = false
 material_override = SubResource( 5 )
 
+[node name="GlobeLand" type="MeshInstance" parent="."]
+mesh = SubResource( 4 )
+
 [node name="DirectionalLight" type="DirectionalLight" parent="."]
 transform = Transform( 0.512717, -0.617688, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
+shadow_enabled = true
+shadow_bias = 0.01
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
@@ -62,12 +69,15 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.65641 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 15.4918 )
 
 [node name="Area" type="Area" parent="."]
 
 [node name="CollisionShape" type="CollisionShape" parent="Area"]
 shape = SubResource( 6 )
+
+[node name="WaveFunctionCollapse" type="Node" parent="."]
+script = ExtResource( 5 )
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]
 [connection signal="mouse_entered" from="Area" to="." method="_on_Area_mouse_entered"]
 [connection signal="mouse_exited" from="Area" to="." method="_on_Area_mouse_exited"]
