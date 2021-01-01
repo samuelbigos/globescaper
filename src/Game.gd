@@ -197,7 +197,8 @@ func _process(delta : float) -> void:
 	#if Input.is_action_just_pressed("mouse_left"):
 	if not _wfc_finished and _wfc_step < 0.0:
 		_wfc_step = 0.0
-		_wfc_finished = not _wfc.step(_icosphere_polys, _prototypes)
+		for i in range(0, 1):
+			_wfc_finished = not _wfc.step(_icosphere_polys, _prototypes)
 		_wfc_data = _wfc._wave
 		_generate_surface_from_wfc()
 		
@@ -222,20 +223,18 @@ func _add_from_wfc():
 
 func _generate_surface_from_wfc():
 	for i in range(_icosphere_polys.size()):
-		var poly = _icosphere_polys[i] as Icosphere.Quad
-		
 		if _wfc_added[i]:
 			continue
 			
+		var poly = _icosphere_polys[i] as Icosphere.Quad
+			
 		# find a prototype that matches
 		var tile_possibilities = _wfc_data[i]
+		if tile_possibilities.size() > 1:
+			continue
+		
 		for t in tile_possibilities.size():
-			
-			if tile_possibilities.size() > 1:
-				continue
-				
 			var matched_prot = _prototypes[tile_possibilities[t]]
-				
 			var mesh = _globe_land.get_mesh()
 			_add_mesh_for_prototype_on_quad(matched_prot, poly, mesh)
 			_wfc_added[i] = true

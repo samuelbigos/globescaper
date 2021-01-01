@@ -6,6 +6,9 @@ var _rng = RandomNumberGenerator.new()
 var _current = -1
 var _wave = []
 var _stack = []
+var _sum_of_weights = []
+var _sum_of_weight_log_weights = []
+var _entropy = []
 var _cell_to_idx = {}
 var _last_added := -1
 
@@ -15,6 +18,7 @@ func init(var i_seed : int, var i_cells, var i_prototypes):
 	_rng.randomize()
 	
 	_wave = []
+	_entropy = []
 	
 	# build our initial state with each cell having all possible cell types (prototypes)
 	for c in range(0, i_cells.size()):
@@ -22,6 +26,7 @@ func init(var i_seed : int, var i_cells, var i_prototypes):
 		for t in range(0, i_prototypes.size()):
 			domain.append(t)
 		_wave.append(domain)
+		_entropy.append(9999.9)
 		
 	_cell_to_idx = {}
 	for i in range(0, i_cells.size()):
@@ -96,32 +101,30 @@ func _wfc_propagate(var i_cells, var i_prototypes):
 			for i in range(0, incompatible.size()):
 				_wfc_ban(_wave, n_idx, incompatible[i])
 				
+			var sum_of_weights = 0.0
+			var sum_of_weight_log_weights = 0.0
+			for d in range(0, _wave[n_idx].size()):
+				var p = 1.0
+				sum_of_weights += p
+				sum_of_weight_log_weights += p * log(p)
+			_entropy[n_idx] = log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
+				
 			_stack.push_back(n_idx)
 		
 			
 func _wfc_ban(wave, cell : int, tile : int) -> void:
 	wave[cell].erase(tile)
-		
+	
 		
 func _wfc_observe(wave) -> int:
-	var lowest_entropy_value := 999.9
+	var lowest_entropy_value := 99999.9
 	var lowest_entropy_index := -1
 	for i in range(0, wave.size()):
 		if wave[i].size() == 1:
 			continue
 			
-		var entropy = 0.0
-		var sum_of_weights = 0.0
-		var sum_of_weight_log_weights = 0.0
-		for d in range(0, wave[i].size()):
-			var p = 1.0
-			sum_of_weights += p
-			sum_of_weight_log_weights += p * log(p)
-		
-		entropy = log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
-			
-		if entropy < lowest_entropy_value:
-			lowest_entropy_value = entropy
+		if _entropy[i] < lowest_entropy_value:
+			lowest_entropy_value = _entropy[i]
 			lowest_entropy_index = i
 			
 	return lowest_entropy_index
