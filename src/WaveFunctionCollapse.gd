@@ -11,6 +11,7 @@ var _sum_of_weight_log_weights = []
 var _entropy = []
 var _cell_to_idx = {}
 var _last_added := -1
+var _tile_compatibility
 
 
 func init(var i_seed : int, var i_cells, var i_prototypes):
@@ -35,7 +36,8 @@ func init(var i_seed : int, var i_cells, var i_prototypes):
 	
 func step(var i_cells, var i_prototypes) -> bool:
 	while _stack.size() > 0:
-		_wfc_propagate(i_cells, i_prototypes)
+		if not _wfc_propagate(i_cells, i_prototypes):
+			return false
 	return _wfc_collapse(i_cells, i_prototypes)
 			
 		
@@ -44,12 +46,24 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 	_current = _wfc_observe(_wave)
 	
 	if _current == -1:
-		for i in _wave:
-			print("%d - %s" % [i.size(), i[0]])
 		return false
 	
-	# pick a random tile from this cell's domain and remove all others
-	var rand_tile = _wave[_current][_rng.randi_range(0, _wave[_current].size() - 1)]
+	# pick a weighted random tile from this cell's domain and remove all others
+	var rand_tile = -1
+	var sum_of_weights = 0.0
+	for i in range(0, _wave[_current].size()):
+		sum_of_weights += i_prototypes[_wave[_current][i]].weight
+	var rnd = _rng.randf_range(0.0, sum_of_weights)
+	for i in range(0, _wave[_current].size()):
+		if rnd < i_prototypes[_wave[_current][i]].weight:
+			rand_tile = _wave[_current][i]
+			break
+		rnd -= i_prototypes[_wave[_current][i]].weight
+		
+	if rand_tile == -1:
+		printerr("FAILURE!")
+		return false
+		
 	_wave[_current] = []
 	_wave[_current].append(rand_tile)
 	_last_added = _current
@@ -61,7 +75,7 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 	return true
 
 
-func _wfc_propagate(var i_cells, var i_prototypes):
+func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 	# get the current stack item
 	var s = _stack.pop_back()
 	var s_cell = i_cells[s]
@@ -78,17 +92,7 @@ func _wfc_propagate(var i_cells, var i_prototypes):
 			for s_tile in _wave[s]:
 				
 				# get the side in stack cell that matches the neighbor side
-				for sv in range(0, 4):
-					for nv in range(0, 4):
-						if s_cell.v[sv] == n_cell.v[(nv + 1) % 4] and s_cell.v[(sv + 1) % 4] == n_cell.v[(nv) % 4]:
-							
-							var s_v1 = i_prototypes[s_tile].corners[sv]
-							var s_v2 = i_prototypes[s_tile].corners[(sv + 1) % 4]
-							var n_v1 = i_prototypes[n_tile].corners[nv]
-							var n_v2 = i_prototypes[n_tile].corners[(nv + 1) % 4]
-							
-							compatible = (s_v1 == n_v2 and s_v2 == n_v1)
-							
+				compatible = _compatible(n, s_cell, s_tile, n_cell, n_tile, i_prototypes)
 				if compatible:
 					break
 			
@@ -101,6 +105,9 @@ func _wfc_propagate(var i_cells, var i_prototypes):
 			for i in range(0, incompatible.size()):
 				_wfc_ban(_wave, n_idx, incompatible[i])
 				
+			if _wave[n_idx].size() == 0:
+				return false
+				
 			var sum_of_weights = 0.0
 			var sum_of_weight_log_weights = 0.0
 			for d in range(0, _wave[n_idx].size()):
@@ -110,7 +117,29 @@ func _wfc_propagate(var i_cells, var i_prototypes):
 			_entropy[n_idx] = log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
 				
 			_stack.push_back(n_idx)
-		
+	
+	return true
+	
+
+func _compatible(var n : int, sc, st, nc, nt, prototypes):
+	var sv = n
+	var compatible = false
+	for nv in range(0, 4):
+		if sc.v[sv] == nc.v[(nv + 1) % 4]:
+			var s_v1 = prototypes[st].corners[sv]
+			var s_v2 = prototypes[st].corners[(sv + 1) % 4]
+			var n_v1 = prototypes[nt].corners[nv]
+			var n_v2 = prototypes[nt].corners[(nv + 1) % 4]
+			
+			var s_slot = prototypes[st].slots[sv]
+			var n_slot = prototypes[nt].slots[nv]
+			
+			compatible = (s_v1 == n_v2 and s_v2 == n_v1)
+			compatible = compatible and s_slot == n_slot
+			break
+			
+	return compatible
+	
 			
 func _wfc_ban(wave, cell : int, tile : int) -> void:
 	wave[cell].erase(tile)

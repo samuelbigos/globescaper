@@ -19,8 +19,8 @@ func _process(delta : float) -> void:
 		_mouse_position = get_viewport().get_mouse_position()
 	
 	if _follow_target:
-		rotation.y = lerp(rotation.y, atan2(_target.x, _target.z), delta * 1.0)
-		_v_gimbal.rotation.x = lerp(_v_gimbal.rotation.x, asin(-_target.y), delta * 1.0)
+		rotation.y = lerp(rotation.y, atan2(_target.x, _target.z), delta * 5.0)
+		_v_gimbal.rotation.x = lerp(_v_gimbal.rotation.x, asin(-_target.y), delta * 5.0)
 	else:
 		rotation.y += _velocity.x * 0.01
 		_v_gimbal.rotation.x = min(max(_v_gimbal.rotation.x + _velocity.y * 0.01, -PI * 0.5), PI * 0.5)

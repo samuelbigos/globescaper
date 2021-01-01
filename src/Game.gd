@@ -3,10 +3,13 @@ class_name Game
 
 
 class Prototype:
-	var mesh = ""
-	var mesh_rot := 0
-	var mirror := 0
+	var mesh_names = []
+	var mesh_rots = []
+	var rotations = []
+	var rot := 0
 	var corners = []
+	var slots = []
+	var weight := 1.0
 	
 const Icosphere = preload("Icosphere.gd")
 
@@ -18,6 +21,7 @@ export var relax_iterations : int = 30
 export var relax_iteration_delta : float = 0.05
 export var water_deep_colour : Color
 export var water_shallow_colour : Color
+export var water_height := 1.05
 
 var _generated := false
 var _icosphere = null
@@ -56,7 +60,7 @@ func _ready() -> void:
 	_icosphere._noise = _noise
 	_generate()
 	
-	var _prototypes = _load_prototype_data()
+	_prototypes = _load_prototype_data()
 		
 	_wfc.init(0, _icosphere_polys, _prototypes)
 	_wfc_added = []
@@ -74,28 +78,38 @@ func _load_prototype_data():
 	# convert dictionary to prototypes
 	for p in prototypes_dict.values():
 		var prototype := Prototype.new()
-		prototype.mesh = p["mesh_name"]
-		prototype.mirror = p["mirror"]
+		prototype.mesh_names = p["mesh_names"]
+		prototype.mesh_rots = p["mesh_rots"]
+		prototype.rotations = p["rotations"]
 		prototype.corners = p["corners"]
+		prototype.slots = [ p["up"], p["right"], p["down"], p["left"] ]
+		if p.has("weight"):
+			prototype.weight = p["weight"]
 		
 		_prototypes.append(prototype)
 	
 	# generate rotation prototypes
 	var new_prototypes = []
-	for prototype in _prototypes.duplicate():
-		for i in range(1, 4):
+	for prototype in _prototypes:
+		for i in prototype.rotations:
 			var new_p := Prototype.new()
-			new_p.mesh = prototype.mesh
-			new_p.mesh_rot = i
-			new_p.mirror = prototype.mirror
+			new_p.mesh_names = prototype.mesh_names.duplicate()
+			new_p.mesh_rots = prototype.mesh_rots.duplicate()
+			new_p.rot = int(i)
 			new_p.corners = []
-			new_p.corners.append(prototype.corners[(0 + i) % 4])
-			new_p.corners.append(prototype.corners[(1 + i) % 4])
-			new_p.corners.append(prototype.corners[(2 + i) % 4])
-			new_p.corners.append(prototype.corners[(3 + i) % 4])
-			_prototypes.append(new_p)
+			new_p.corners.append(prototype.corners[(0 + int(i)) % 4])
+			new_p.corners.append(prototype.corners[(1 + int(i)) % 4])
+			new_p.corners.append(prototype.corners[(2 + int(i)) % 4])
+			new_p.corners.append(prototype.corners[(3 + int(i)) % 4])
+			new_p.slots = []
+			new_p.slots.append(prototype.slots[(0 + int(i)) % 4])
+			new_p.slots.append(prototype.slots[(1 + int(i)) % 4])
+			new_p.slots.append(prototype.slots[(2 + int(i)) % 4])
+			new_p.slots.append(prototype.slots[(3 + int(i)) % 4])
+			new_p.weight = prototype.weight
+			new_prototypes.append(new_p)
 			
-	return _prototypes
+	return new_prototypes
 
 
 func _generate() -> void:
@@ -146,7 +160,7 @@ func _generate() -> void:
 	var ocean_mesh = ArrayMesh.new()
 	var ocean_mesh_array = globe_mesh_array.duplicate()
 	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
-		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * 1.08
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * water_height
 		
 	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
 	ocean_mesh.surface_set_material(0, water_material)
@@ -157,7 +171,7 @@ func _generate() -> void:
 	var globe_wireframe_mesh = ArrayMesh.new()
 	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
 	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * 1.081
+		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * (water_height * 1.001)
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 	_globe_wireframe.set_mesh(globe_wireframe_mesh)	
 		
@@ -199,6 +213,8 @@ func _process(delta : float) -> void:
 		_wfc_step = 0.0
 		for i in range(0, 1):
 			_wfc_finished = not _wfc.step(_icosphere_polys, _prototypes)
+			if _wfc_finished:
+				break
 		_wfc_data = _wfc._wave
 		_generate_surface_from_wfc()
 		
@@ -242,11 +258,6 @@ func _generate_surface_from_wfc():
 
 func _add_mesh_for_prototype_on_quad(prototype, quad, array_mesh, possibilities = false, possibility_idx = 0):
 		
-	var tile_mesh : Mesh = load("res://assets/tiles/" + prototype.mesh + ".obj")
-	var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-	if tile_arrays.size() == 0:
-		return
-	
 	var corner_verts_pos = []
 	for j in range(0, 4):
 		corner_verts_pos.append(_icosphere_verts[quad.v[j]])
@@ -269,24 +280,23 @@ func _add_mesh_for_prototype_on_quad(prototype, quad, array_mesh, possibilities 
 		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
 
 		corner_verts_pos = new_corners
-	
-	# transform each vert in the prototype mesh
-	for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
-		tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(tile_arrays[Mesh.ARRAY_VERTEX][v], corner_verts_pos, prototype.mesh_rot)
 		
-	# add the new mesh to the array mesh
-	array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-	array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
-	
-	if prototype.mirror:
-		var mirrored_tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-		for v in range(0, mirrored_tile_arrays[Mesh.ARRAY_VERTEX].size()):
-			var vert = mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v]
-			vert.x = -vert.x
-			vert.z = -vert.z
-			mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(vert, corner_verts_pos, prototype.mesh_rot)
+	for i in range(0, prototype.mesh_names.size()):
+		var tile_mesh : Mesh = load("res://assets/tiles/" + prototype.mesh_names[i] + ".obj")
+		var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
+		if tile_arrays.size() == 0:
+			return
 			
-		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mirrored_tile_arrays)
+		# transform each vert in the prototype mesh
+		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * prototype.mesh_rots[i])
+		for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
+			var vert = tile_arrays[Mesh.ARRAY_VERTEX][v]
+			vert = rot_matrix.xform(vert)
+			vert = _transform_vert(vert, corner_verts_pos, prototype.rot)
+			tile_arrays[Mesh.ARRAY_VERTEX][v] = vert
+			
+		# add the new mesh to the array mesh
+		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
 
 

@@ -1,0 +1,19 @@
+[remap]
+
+importer="wavefront_obj"
+type="Mesh"
+path="res://.import/beach_1100-0000.obj-ec890e9437cecd97e6b143109b454bde.mesh"
+
+[deps]
+
+files=[ "res://.import/beach_1100-0000.obj-ec890e9437cecd97e6b143109b454bde.mesh" ]
+
+source_file="res://assets/tiles/beach_1100-0000.obj"
+dest_files=[ "res://.import/beach_1100-0000.obj-ec890e9437cecd97e6b143109b454bde.mesh", "res://.import/beach_1100-0000.obj-ec890e9437cecd97e6b143109b454bde.mesh" ]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3( 1, 1, 1 )
+offset_mesh=Vector3( 0, 0, 0 )
+optimize_mesh=true

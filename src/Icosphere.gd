@@ -356,6 +356,16 @@ func generate_icosphere(verts, iterations : int):
 		if poly.v.size() != poly.neighbors.size():
 			printerr("Error in neighbor calculation #4.")
 			return []
+			
+	# fix neighbor winding so that the the first neighbor is always the one adjacent to v[0] and v[1] etc.
+	for poly in new_polys:
+		var new_neighbors = []
+		for v in range(0, 4):
+			for n in range(0, 4):
+				if poly.neighbors[n].v.has(poly.v[v]) and poly.neighbors[n].v.has(poly.v[(v + 1) % 4]):
+					new_neighbors.append(poly.neighbors[n])
+					break
+		poly.neighbors = new_neighbors
 
 	return new_polys
 	
