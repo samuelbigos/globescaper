@@ -35,8 +35,9 @@ export var relax_iterations : int = 30
 export var relax_iteration_delta : float = 0.05
 export var water_deep_colour : Color
 export var water_shallow_colour : Color
-export var water_height := 1.05
+export var cell_height = 1.0
 export var grid_height = 5
+export var water_height = 0.5
 
 var _generated := false
 var _icosphere = null
@@ -197,7 +198,7 @@ func _generate() -> void:
 	var ocean_mesh = ArrayMesh.new()
 	var ocean_mesh_array = globe_mesh_array.duplicate()
 	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
-		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * water_height
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (radius + water_height)
 		
 	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
 	ocean_mesh.surface_set_material(0, water_material)
@@ -208,7 +209,7 @@ func _generate() -> void:
 	var globe_wireframe_mesh = ArrayMesh.new()
 	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
 	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * radius * (water_height * 1.001)
+		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (radius + water_height)
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 	_globe_wireframe.set_mesh(globe_wireframe_mesh)	
 		
@@ -268,9 +269,11 @@ func _generate() -> void:
 			# add the cube above
 			if h < grid_height - 1:
 				cube.neighbors.append(quad_cube_mapping[i][h + 1])
+			else: cube.neighbors.append(null)
 			# add the cube below
 			if h > 0:
 				cube.neighbors.append(quad_cube_mapping[i][h - 1])
+			else: cube.neighbors.append(null)
 				
 	_generated = true
 		
@@ -334,30 +337,16 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 	var corner_verts_pos = []
 	for j in range(0, 4):
 		corner_verts_pos.append(cell.v_bot[j])
-	
-	# display possibilities in a grid
-#	if possibilities:
-#		var grid = 5.0
-#		var new_corners = []
-#		var t = possibility_idx
-#		var x = float(t % int(grid)) - (grid * 0.5)
-#		var y = float(t / int(grid)) - (grid * 0.5)
-#
-#		var offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y)))
-#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-#		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y)))
-#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-#		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y + 1.0)))
-#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-#		offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y + 1.0)))
-#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-#
-#		corner_verts_pos = new_corners
 		
 	for i in range(0, prototype.mesh_names.size()):
+		if prototype.mesh_names[i] == "0000-0000":
+			return
+			
 		var tile_mesh : Mesh = load("res://assets/tiles/" + prototype.mesh_names[i] + ".obj")
 		var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
 		if tile_arrays.size() == 0:
+			print(prototype.mesh_names[i])
+			printerr("MESH ERROR!")
 			return
 			
 		# transform each vert in the prototype mesh
@@ -371,85 +360,6 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
-
-
-#func _generate_surface_from_voxels():
-#	var surface_mesh = ArrayMesh.new()
-#	_globe_land.set_mesh(surface_mesh)
-#
-#	for i in range(_icosphere_polys.size()):
-#		var poly = _icosphere_polys[i] as Icosphere.Quad
-#		# build an array of corners we need to match
-#		var corners = []
-#		corners.append(_voxels[poly.v[0]]) # bottom
-#		corners.append(_voxels[poly.v[1]]) # bottom
-#		corners.append(_voxels[poly.v[2]]) # bottom
-#		corners.append(_voxels[poly.v[3]]) # bottom
-#		corners.append(0) # top
-#		corners.append(0) # top
-#		corners.append(0) # top
-#		corners.append(0) # top
-#
-#		if not corners.has(1):
-#			continue
-#
-#		# find a prototype that matches
-#		var matched = false
-#		var matched_prot = null
-#		for prototype in _prototypes:
-#			if prototype.corners[0] == corners[0] and \
-#				prototype.corners[1] == corners[1] and \
-#				prototype.corners[2] == corners[2] and \
-#				prototype.corners[3] == corners[3]:
-#
-#				matched = true
-#				matched_prot = prototype
-#				break
-#
-#		if matched:
-#			var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
-#			var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-#
-#			### transform the mesh to fit the tile
-#			# get the final position of all the corner verts
-#			var corner_verts_pos = []
-#			for j in range(0, 4):
-#				corner_verts_pos.append(_icosphere_verts[poly.v[j]])
-#
-#			var tile_centre = _icosphere_verts[poly.v[0]]
-#			tile_centre += _icosphere_verts[poly.v[1]]
-#			tile_centre += _icosphere_verts[poly.v[2]]
-#			tile_centre += _icosphere_verts[poly.v[3]]
-#			tile_centre /= 4.0
-#
-#			var trans := Transform.IDENTITY
-#			# rotate so that up is always the surface normal
-#			var n = tile_centre.normalized()
-#			var r = Vector3(0.0, 1.0, 0.0)
-#			var e = r.cross(n).normalized()
-#			var d = n.cross(e).normalized()
-#			trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
-#
-#			# transform each vert in the prototype mesh
-#			for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
-#				tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(tile_arrays[Mesh.ARRAY_VERTEX][v], corner_verts_pos, matched_prot.mesh_rot)
-#				#tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
-#
-#			# add the new mesh to the array mesh
-#			surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-#			surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
-#
-#			if matched_prot.mirror:
-#				var mirrored_tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-#				for v in range(0, mirrored_tile_arrays[Mesh.ARRAY_VERTEX].size()):
-#					var vert = mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v]
-#					vert.x = -vert.x
-#					vert.z = -vert.z
-#					mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(vert, corner_verts_pos, matched_prot.mesh_rot)
-#					#mirrored_tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
-#
-#				surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mirrored_tile_arrays)
-#				surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
 
 
 func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer : int) -> Vector3:
@@ -468,7 +378,7 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer :
 	
 	# add height
 	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
-	var height = radius + (radius * 0.1) * (float(layer) + vert_height)
+	var height = radius + (cell_height) * (float(layer) + vert_height)
 	return new_vert.normalized() * height
 	
 	

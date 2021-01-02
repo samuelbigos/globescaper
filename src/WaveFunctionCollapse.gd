@@ -68,7 +68,6 @@ func step(var i_cells, var i_prototypes) -> bool:
 		if not _wfc_propagate(i_cells, i_prototypes):
 			printerr("FAILURE! Propagation failed")
 			return false
-	print(i_steps)
 	return _wfc_collapse(i_cells, i_prototypes)
 			
 		
@@ -112,6 +111,9 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 	var s_cell = i_cells[s]
 		
 	for n in range(0, s_cell.neighbors.size()):
+		if s_cell.neighbors[n] == null:
+			continue
+			
 		var n_cell = s_cell.neighbors[n]
 		var n_idx = _cell_to_idx[n_cell]
 		
@@ -133,10 +135,12 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 				var s_prot = i_prototypes[s_tile]
 				
 				# get the side in stack cell that matches the neighbor side
-				if n >= 4:
-					compatible = _wfc_compatible_v(s_cell, s_prot, n_cell, n_prot)
+				if n ==  5:
+					compatible = s_prot.bot_int == n_prot.top_int
+				elif n ==  4:
+					compatible = s_prot.top_int == n_prot.bot_int
 				else:
-					compatible = _wfc_compatible_h(s_cell, s_prot, n_cell, n_prot, n, nv)
+					compatible = _wfc_compatible_h(s_prot, n_prot, n, nv)
 					
 				if compatible:
 					break
@@ -147,41 +151,36 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 		
 		# if we changed the neighbors possibility space we need to propagate out to it's neighbors
 		if incompatible.size() > 0:
-			print(incompatible.size())
 			for i in range(0, incompatible.size()):
 				_wfc_ban(_wave, n_idx, incompatible[i])
 				
 			if _wave[n_idx].size() == 0:
 				printerr("FAILURE! Propagation failed")
-				#return false
+				return false
 				
-			var sum_of_weights = 0.0
-			var sum_of_weight_log_weights = 0.0
-			for d in range(0, _wave[n_idx].size()):
-				var p = 1.0
-				sum_of_weights += p
-				sum_of_weight_log_weights += p * log(p)
-			_entropy[n_idx] = log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
-				
+			_entropy[n_idx] = _wfc_calc_entropy(_wave[n_idx])
 			_stack.push_back(n_idx)
 	
 	return true
 	
 	
-func _wfc_compatible_v(s_cell, s_prot, n_cell, n_prot):
-	if s_cell.layer > n_cell.layer:
-		return s_prot.bot_int == n_prot.top_int
-	else:
-		return s_prot.top_int == n_prot.bot_int
-		
-		
-func _wfc_compatible_h(s_cell, s_prot, n_cell, n_prot, sv, nv):
+func _wfc_calc_entropy(domain):
+	var sum_of_weights = 0.0
+	var sum_of_weight_log_weights = 0.0
+	for d in range(0, domain.size()):
+		var p = 1.0
+		sum_of_weights += p
+		sum_of_weight_log_weights += p * log(p)
+	return log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
 	
-	var s_slot = s_prot.slots[sv]
-	var n_slot = n_prot.slots[nv]
+		
+func _wfc_compatible_h(s_prot, n_prot, sv, nv):
+	
+	#var s_slot = s_prot.slots[sv]
+	#var n_slot = n_prot.slots[nv]
 	
 	var compatible = s_prot.h_ints[sv] == n_prot.h_ints_inv[nv]
-	compatible = compatible and s_slot == n_slot
+	#compatible = compatible and s_slot == n_slot
 			
 	return compatible
 	
