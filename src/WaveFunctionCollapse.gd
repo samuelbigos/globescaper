@@ -37,6 +37,7 @@ func init(var i_seed : int, var i_cells, var i_prototypes):
 func step(var i_cells, var i_prototypes) -> bool:
 	while _stack.size() > 0:
 		if not _wfc_propagate(i_cells, i_prototypes):
+			printerr("FAILURE! Propagation failed")
 			return false
 	return _wfc_collapse(i_cells, i_prototypes)
 			
@@ -61,7 +62,7 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 		rnd -= i_prototypes[_wave[_current][i]].weight
 		
 	if rand_tile == -1:
-		printerr("FAILURE!")
+		printerr("FAILURE! Random tile failed")
 		return false
 		
 	_wave[_current] = []
@@ -92,7 +93,7 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 			for s_tile in _wave[s]:
 				
 				# get the side in stack cell that matches the neighbor side
-				compatible = _compatible(n, s_cell, s_tile, n_cell, n_tile, i_prototypes)
+				compatible = _wfc_compatible(n, s_cell, s_tile, n_cell, n_tile, i_prototypes)
 				if compatible:
 					break
 			
@@ -121,15 +122,15 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 	return true
 	
 
-func _compatible(var n : int, sc, st, nc, nt, prototypes):
+func _wfc_compatible(var n : int, sc, st, nc, nt, prototypes):
 	var sv = n
 	var compatible = false
 	for nv in range(0, 4):
 		if sc.v[sv] == nc.v[(nv + 1) % 4]:
-			var s_v1 = prototypes[st].corners[sv]
-			var s_v2 = prototypes[st].corners[(sv + 1) % 4]
-			var n_v1 = prototypes[nt].corners[nv]
-			var n_v2 = prototypes[nt].corners[(nv + 1) % 4]
+			var s_v1 = prototypes[st].corners_bot[sv]
+			var s_v2 = prototypes[st].corners_bot[(sv + 1) % 4]
+			var n_v1 = prototypes[nt].corners_bot[nv]
+			var n_v2 = prototypes[nt].corners_bot[(nv + 1) % 4]
 			
 			var s_slot = prototypes[st].slots[sv]
 			var n_slot = prototypes[nt].slots[nv]

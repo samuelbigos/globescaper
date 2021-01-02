@@ -7,7 +7,8 @@ class Prototype:
 	var mesh_rots = []
 	var rotations = []
 	var rot := 0
-	var corners = []
+	var corners_top = []
+	var corners_bot = []
 	var slots = []
 	var weight := 1.0
 	
@@ -76,12 +77,14 @@ func _load_prototype_data():
 	file.close()
 	
 	# convert dictionary to prototypes
-	for p in prototypes_dict.values():
+	var prototype_json = prototypes_dict.values()
+	for p in prototype_json[0]:
 		var prototype := Prototype.new()
 		prototype.mesh_names = p["mesh_names"]
 		prototype.mesh_rots = p["mesh_rots"]
 		prototype.rotations = p["rotations"]
-		prototype.corners = p["corners"]
+		prototype.corners_bot = p["corners_bot"]
+		prototype.corners_top = p["corners_top"]
 		prototype.slots = [ p["up"], p["right"], p["down"], p["left"] ]
 		if p.has("weight"):
 			prototype.weight = p["weight"]
@@ -96,11 +99,16 @@ func _load_prototype_data():
 			new_p.mesh_names = prototype.mesh_names.duplicate()
 			new_p.mesh_rots = prototype.mesh_rots.duplicate()
 			new_p.rot = int(i)
-			new_p.corners = []
-			new_p.corners.append(prototype.corners[(0 + int(i)) % 4])
-			new_p.corners.append(prototype.corners[(1 + int(i)) % 4])
-			new_p.corners.append(prototype.corners[(2 + int(i)) % 4])
-			new_p.corners.append(prototype.corners[(3 + int(i)) % 4])
+			new_p.corners_top = []
+			new_p.corners_top.append(prototype.corners_top[(0 + int(i)) % 4])
+			new_p.corners_top.append(prototype.corners_top[(1 + int(i)) % 4])
+			new_p.corners_top.append(prototype.corners_top[(2 + int(i)) % 4])
+			new_p.corners_top.append(prototype.corners_top[(3 + int(i)) % 4])
+			new_p.corners_bot = []
+			new_p.corners_bot.append(prototype.corners_bot[(0 + int(i)) % 4])
+			new_p.corners_bot.append(prototype.corners_bot[(1 + int(i)) % 4])
+			new_p.corners_bot.append(prototype.corners_bot[(2 + int(i)) % 4])
+			new_p.corners_bot.append(prototype.corners_bot[(3 + int(i)) % 4])
 			new_p.slots = []
 			new_p.slots.append(prototype.slots[(0 + int(i)) % 4])
 			new_p.slots.append(prototype.slots[(1 + int(i)) % 4])

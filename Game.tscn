@@ -45,7 +45,7 @@ radius = 10.0
 relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
-water_height = 1.052
+water_height = 1.06
 
 [node name="Globe" type="MeshInstance" parent="."]
 
@@ -59,7 +59,7 @@ material_override = SubResource( 4 )
 mesh = SubResource( 5 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="."]
-transform = Transform( 0.512717, -0.617688, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
+transform = Transform( 0.512717, -0.617689, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
 shadow_enabled = true
 shadow_bias = 0.01
 
