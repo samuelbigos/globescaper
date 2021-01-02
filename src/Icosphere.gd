@@ -504,5 +504,4 @@ func _get_tri_normal(a : Vector3, b : Vector3, c : Vector3) -> Vector3:
 
 # converts a unit vertex on our icosphere to the vertex on our planet, so we can apply deformations.
 func _unit_to_planet(vert : Vector3) -> Vector3:
-	var height = _radius + (_radius * _noise.get_noise_3d(vert.x, vert.y, vert.z) * _noise_influence)
-	return vert.normalized() * height
+	return vert.normalized() * _radius

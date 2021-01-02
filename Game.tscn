@@ -42,17 +42,18 @@ script = ExtResource( 1 )
 land_material = SubResource( 1 )
 water_material = SubResource( 3 )
 radius = 10.0
+iterations = 1
 relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
 water_height = 1.06
+grid_height = 4
 
 [node name="Globe" type="MeshInstance" parent="."]
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
 
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
-visible = false
 material_override = SubResource( 4 )
 
 [node name="GlobeLand" type="MeshInstance" parent="."]
@@ -69,7 +70,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 18.8465 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 19.8165 )
 
 [node name="Area" type="Area" parent="."]
 

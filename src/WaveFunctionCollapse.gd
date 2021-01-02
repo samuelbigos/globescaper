@@ -12,21 +12,48 @@ var _entropy = []
 var _cell_to_idx = {}
 var _last_added := -1
 var _tile_compatibility
+var _layer = 0
 
 
-func init(var i_seed : int, var i_cells, var i_prototypes):
+func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int):
 	_rng.seed = i_seed
 	_rng.randomize()
 	
 	_wave = []
 	_entropy = []
+	_layer = 0
 	
+	var bot_domain = []
+	for t in range(0, i_prototypes.size()):
+		if i_prototypes[t].corners_bot[0] == 1 and \
+			i_prototypes[t].corners_bot[1] == 1 and \
+			i_prototypes[t].corners_bot[2] == 1 and \
+			i_prototypes[t].corners_bot[3] == 1:
+				
+			bot_domain.append(t)
+			
+	var top_domain = []
+	for t in range(0, i_prototypes.size()):
+		if i_prototypes[t].corners_top[0] == 0 and \
+			i_prototypes[t].corners_top[1] == 0 and \
+			i_prototypes[t].corners_top[2] == 0 and \
+			i_prototypes[t].corners_top[3] == 0:
+				
+			top_domain.append(t)
+			
+	var domain = []
+	for t in range(0, i_prototypes.size()):
+		domain.append(t)
+		
 	# build our initial state with each cell having all possible cell types (prototypes)
 	for c in range(0, i_cells.size()):
-		var domain = []
-		for t in range(0, i_prototypes.size()):
-			domain.append(t)
-		_wave.append(domain)
+		if i_cells[c].layer == 0:
+			_wave.append(bot_domain.duplicate())
+		elif i_cells[c].layer == grid_height - 1:
+			_wave.append(top_domain.duplicate())
+		else:
+			_wave.append(domain.duplicate())
+			
 		_entropy.append(9999.9)
 		
 	_cell_to_idx = {}
@@ -35,10 +62,13 @@ func init(var i_seed : int, var i_cells, var i_prototypes):
 	
 	
 func step(var i_cells, var i_prototypes) -> bool:
+	var i_steps = 0
 	while _stack.size() > 0:
+		i_steps += 1
 		if not _wfc_propagate(i_cells, i_prototypes):
 			printerr("FAILURE! Propagation failed")
 			return false
+	print(i_steps)
 	return _wfc_collapse(i_cells, i_prototypes)
 			
 		
@@ -50,7 +80,7 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 		return false
 	
 	# pick a weighted random tile from this cell's domain and remove all others
-	var rand_tile = -1
+	var rand_tile = -1		
 	var sum_of_weights = 0.0
 	for i in range(0, _wave[_current].size()):
 		sum_of_weights += i_prototypes[_wave[_current][i]].weight
@@ -89,11 +119,25 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 		# from the original tile and if not, remove it from the domain
 		var incompatible = []
 		for n_tile in _wave[n_idx]:
+			
+			var n_prot = i_prototypes[n_tile]
+			var nv = 0
+			if n < 4:
+				for i in range(0, 4):
+					if s_cell.v_bot[n] == n_cell.v_bot[(i + 1) % 4]:
+						nv = i
+			
 			var compatible = false
 			for s_tile in _wave[s]:
 				
+				var s_prot = i_prototypes[s_tile]
+				
 				# get the side in stack cell that matches the neighbor side
-				compatible = _wfc_compatible(n, s_cell, s_tile, n_cell, n_tile, i_prototypes)
+				if n >= 4:
+					compatible = _wfc_compatible_v(s_cell, s_prot, n_cell, n_prot)
+				else:
+					compatible = _wfc_compatible_h(s_cell, s_prot, n_cell, n_prot, n, nv)
+					
 				if compatible:
 					break
 			
@@ -103,11 +147,13 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 		
 		# if we changed the neighbors possibility space we need to propagate out to it's neighbors
 		if incompatible.size() > 0:
+			print(incompatible.size())
 			for i in range(0, incompatible.size()):
 				_wfc_ban(_wave, n_idx, incompatible[i])
 				
 			if _wave[n_idx].size() == 0:
-				return false
+				printerr("FAILURE! Propagation failed")
+				#return false
 				
 			var sum_of_weights = 0.0
 			var sum_of_weight_log_weights = 0.0
@@ -121,23 +167,21 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 	
 	return true
 	
-
-func _wfc_compatible(var n : int, sc, st, nc, nt, prototypes):
-	var sv = n
-	var compatible = false
-	for nv in range(0, 4):
-		if sc.v[sv] == nc.v[(nv + 1) % 4]:
-			var s_v1 = prototypes[st].corners_bot[sv]
-			var s_v2 = prototypes[st].corners_bot[(sv + 1) % 4]
-			var n_v1 = prototypes[nt].corners_bot[nv]
-			var n_v2 = prototypes[nt].corners_bot[(nv + 1) % 4]
-			
-			var s_slot = prototypes[st].slots[sv]
-			var n_slot = prototypes[nt].slots[nv]
-			
-			compatible = (s_v1 == n_v2 and s_v2 == n_v1)
-			compatible = compatible and s_slot == n_slot
-			break
+	
+func _wfc_compatible_v(s_cell, s_prot, n_cell, n_prot):
+	if s_cell.layer > n_cell.layer:
+		return s_prot.bot_int == n_prot.top_int
+	else:
+		return s_prot.top_int == n_prot.bot_int
+		
+		
+func _wfc_compatible_h(s_cell, s_prot, n_cell, n_prot, sv, nv):
+	
+	var s_slot = s_prot.slots[sv]
+	var n_slot = n_prot.slots[nv]
+	
+	var compatible = s_prot.h_ints[sv] == n_prot.h_ints_inv[nv]
+	compatible = compatible and s_slot == n_slot
 			
 	return compatible
 	

@@ -7,10 +7,23 @@ class Prototype:
 	var mesh_rots = []
 	var rotations = []
 	var rot := 0
-	var corners_top = []
 	var corners_bot = []
+	var corners_top = []
+	var bot_int = 0
+	var top_int = 0
+	var h_ints = [0, 0, 0, 0]
+	var h_ints_inv = [0, 0, 0, 0]
 	var slots = []
+	var slot_b : int
+	var slot_t : int
 	var weight := 1.0
+	
+class Cell:
+	var v_bot = []
+	var v_top = []
+	var layer = 0
+	var neighbors = []
+	
 	
 const Icosphere = preload("Icosphere.gd")
 
@@ -23,6 +36,7 @@ export var relax_iteration_delta : float = 0.05
 export var water_deep_colour : Color
 export var water_shallow_colour : Color
 export var water_height := 1.05
+export var grid_height = 5
 
 var _generated := false
 var _icosphere = null
@@ -41,8 +55,9 @@ var _wfc_data = []
 var _wfc_added = []
 var _wfc_step = 0.0
 var _wfc_finished = false
-
 var _surface_generate = false
+
+var _grid_cells = []
 
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
@@ -63,9 +78,9 @@ func _ready() -> void:
 	
 	_prototypes = _load_prototype_data()
 		
-	_wfc.init(0, _icosphere_polys, _prototypes)
+	_wfc.init(0, _grid_cells, _prototypes, grid_height)
 	_wfc_added = []
-	for p in _icosphere_polys:
+	for c in _grid_cells:
 		_wfc_added.append(false)
 
 
@@ -86,6 +101,8 @@ func _load_prototype_data():
 		prototype.corners_bot = p["corners_bot"]
 		prototype.corners_top = p["corners_top"]
 		prototype.slots = [ p["up"], p["right"], p["down"], p["left"] ]
+		prototype.slot_b = p["bottom"]
+		prototype.slot_t = p["top"]
 		if p.has("weight"):
 			prototype.weight = p["weight"]
 		
@@ -109,20 +126,32 @@ func _load_prototype_data():
 			new_p.corners_bot.append(prototype.corners_bot[(1 + int(i)) % 4])
 			new_p.corners_bot.append(prototype.corners_bot[(2 + int(i)) % 4])
 			new_p.corners_bot.append(prototype.corners_bot[(3 + int(i)) % 4])
+			new_p.top_int = new_p.corners_top[0] * 1 + new_p.corners_top[1] * 2 + new_p.corners_top[2] * 4 + new_p.corners_top[3] * 8
+			new_p.bot_int = new_p.corners_bot[0] * 1 + new_p.corners_bot[1] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[3] * 8
+			new_p.h_ints = [0, 0, 0, 0]
+			new_p.h_ints[0] = new_p.corners_top[0] * 1 + new_p.corners_top[1] * 2 + new_p.corners_bot[1] * 4 + new_p.corners_bot[0] * 8
+			new_p.h_ints[1] = new_p.corners_top[1] * 1 + new_p.corners_top[2] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[1] * 8
+			new_p.h_ints[2] = new_p.corners_top[2] * 1 + new_p.corners_top[3] * 2 + new_p.corners_bot[3] * 4 + new_p.corners_bot[2] * 8
+			new_p.h_ints[3] = new_p.corners_top[3] * 1 + new_p.corners_top[0] * 2 + new_p.corners_bot[0] * 4 + new_p.corners_bot[3] * 8
+			new_p.h_ints_inv = [0, 0, 0, 0]
+			new_p.h_ints_inv[0] = new_p.corners_top[1] * 1 + new_p.corners_top[0] * 2 + new_p.corners_bot[0] * 4 + new_p.corners_bot[1] * 8
+			new_p.h_ints_inv[1] = new_p.corners_top[2] * 1 + new_p.corners_top[1] * 2 + new_p.corners_bot[1] * 4 + new_p.corners_bot[2] * 8
+			new_p.h_ints_inv[2] = new_p.corners_top[3] * 1 + new_p.corners_top[2] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[3] * 8
+			new_p.h_ints_inv[3] = new_p.corners_top[0] * 1 + new_p.corners_top[3] * 2 + new_p.corners_bot[3] * 4 + new_p.corners_bot[0] * 8
 			new_p.slots = []
 			new_p.slots.append(prototype.slots[(0 + int(i)) % 4])
 			new_p.slots.append(prototype.slots[(1 + int(i)) % 4])
 			new_p.slots.append(prototype.slots[(2 + int(i)) % 4])
 			new_p.slots.append(prototype.slots[(3 + int(i)) % 4])
+			new_p.slot_b = prototype.slot_b
+			new_p.slot_t = prototype.slot_t
 			new_p.weight = prototype.weight
 			new_prototypes.append(new_p)
 			
 	return new_prototypes
 
 
-func _generate() -> void:
-	_icosphere._radius = radius
-	
+func _generate() -> void:	
 	_icosphere_verts = []
 	_icosphere_polys = _icosphere.generate_icosphere(_icosphere_verts, iterations)
 	var colours = {}
@@ -199,7 +228,50 @@ func _generate() -> void:
 				var vert = _icosphere_polys[i].neighbors[j].v[v]
 				if not _vert_poly_neighbors[vert].has(_icosphere_polys[i].neighbors[j]):
 					_vert_poly_neighbors[vert].append(_icosphere_polys[i].neighbors[j])
+					
+	# calculate average polygon dimensions
+	var total_length = 0.0
+	for i in range(0, _icosphere_polys.size()):
+		total_length += _icosphere_verts[_icosphere_polys[i].v[0]].distance_to(_icosphere_verts[_icosphere_polys[i].v[1]])
+		total_length += _icosphere_verts[_icosphere_polys[i].v[1]].distance_to(_icosphere_verts[_icosphere_polys[i].v[2]])
+		total_length += _icosphere_verts[_icosphere_polys[i].v[2]].distance_to(_icosphere_verts[_icosphere_polys[i].v[3]])
+		total_length += _icosphere_verts[_icosphere_polys[i].v[3]].distance_to(_icosphere_verts[_icosphere_polys[i].v[0]])
+	var average_dimension = total_length / (_icosphere_polys.size() * 4.0)
+	
+	# convert from quads on a sphere to cubes in our 3D grid space where the bottom of the lowest
+	# level of the grid is the quad on the surface of the sphere
+	var quad_cube_mapping = []
+	var quad_to_quad_idx = {}
+	var cell_height = average_dimension
+	for i in range(0, _icosphere_polys.size()):
+		quad_cube_mapping.append([])
+		quad_to_quad_idx[_icosphere_polys[i]] = i
+		for h in range(0, grid_height):
+			var cell = Cell.new()
+			cell.layer = h
+			for v in range(0, 4):
+				var vert = _icosphere_verts[_icosphere_polys[i].v[v]]
+				cell.v_bot.append(vert + (vert.normalized() * cell_height * float(grid_height)))
+				cell.v_top.append(vert + (vert.normalized() * cell_height * float(grid_height + 1)))
 		
+			quad_cube_mapping[i].append(cell)
+			_grid_cells.append(cell)
+			
+	# set up cube neighbors
+	for i in range(0, quad_cube_mapping.size()):
+		for h in range(0, quad_cube_mapping[i].size()):
+			var cube = quad_cube_mapping[i][h]
+			# add the 4 neighboring cubes from the same layer
+			for n in range(0, 4):
+				var n_quad_idx = quad_to_quad_idx[_icosphere_polys[i].neighbors[n]]
+				cube.neighbors.append(quad_cube_mapping[n_quad_idx][h])
+			# add the cube above
+			if h < grid_height - 1:
+				cube.neighbors.append(quad_cube_mapping[i][h + 1])
+			# add the cube below
+			if h > 0:
+				cube.neighbors.append(quad_cube_mapping[i][h - 1])
+				
 	_generated = true
 		
 
@@ -220,37 +292,30 @@ func _process(delta : float) -> void:
 	if not _wfc_finished and _wfc_step < 0.0:
 		_wfc_step = 0.0
 		for i in range(0, 1):
-			_wfc_finished = not _wfc.step(_icosphere_polys, _prototypes)
+			_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
 			if _wfc_finished:
 				break
 		_wfc_data = _wfc._wave
 		_generate_surface_from_wfc()
 		
 		var quad_center := Vector3()
-		for v in _icosphere_polys[_wfc._last_added].v:
-			quad_center += _icosphere_verts[v]
+		for v in _grid_cells[_wfc._last_added].v_bot:
+			quad_center += v
 		quad_center /= 4.0
 		_camera.set_orientation(quad_center)
 		
 		if _wfc_finished:
 			_camera.enable_manual_control()
 			
-		#_generate_surface_from_voxels()
-		
+		#_generate_surface_from_voxels()	
 
-func _add_from_wfc():
-	var prototype = _prototypes[_wfc_data[_wfc._last_added][0]]
-	var quad = _icosphere_polys[_wfc._last_added]
-	var mesh = _globe_land.get_mesh()
-	_add_mesh_for_prototype_on_quad(prototype, quad, mesh)
-	
 
 func _generate_surface_from_wfc():
-	for i in range(_icosphere_polys.size()):
+	for i in range(_grid_cells.size()):
 		if _wfc_added[i]:
 			continue
 			
-		var poly = _icosphere_polys[i] as Icosphere.Quad
+		var cell = _grid_cells[i] as Cell
 			
 		# find a prototype that matches
 		var tile_possibilities = _wfc_data[i]
@@ -260,34 +325,34 @@ func _generate_surface_from_wfc():
 		for t in tile_possibilities.size():
 			var matched_prot = _prototypes[tile_possibilities[t]]
 			var mesh = _globe_land.get_mesh()
-			_add_mesh_for_prototype_on_quad(matched_prot, poly, mesh)
+			_add_mesh_for_prototype_on_quad(matched_prot, cell, mesh)
 			_wfc_added[i] = true
 
 
-func _add_mesh_for_prototype_on_quad(prototype, quad, array_mesh, possibilities = false, possibility_idx = 0):
+func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibilities = false, possibility_idx = 0):
 		
 	var corner_verts_pos = []
 	for j in range(0, 4):
-		corner_verts_pos.append(_icosphere_verts[quad.v[j]])
+		corner_verts_pos.append(cell.v_bot[j])
 	
 	# display possibilities in a grid
-	if possibilities:
-		var grid = 5.0
-		var new_corners = []
-		var t = possibility_idx
-		var x = float(t % int(grid)) - (grid * 0.5)
-		var y = float(t / int(grid)) - (grid * 0.5)
-
-		var offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y)))
-		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y)))
-		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y + 1.0)))
-		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-		offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y + 1.0)))
-		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
-
-		corner_verts_pos = new_corners
+#	if possibilities:
+#		var grid = 5.0
+#		var new_corners = []
+#		var t = possibility_idx
+#		var x = float(t % int(grid)) - (grid * 0.5)
+#		var y = float(t / int(grid)) - (grid * 0.5)
+#
+#		var offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y)))
+#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
+#		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y)))
+#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
+#		offset = Vector3((2.0 / grid * float(x + 1.0)), 0.0, (2.0 / grid * float(y + 1.0)))
+#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
+#		offset = Vector3((2.0 / grid * float(x)), 0.0, (2.0 / grid * float(y + 1.0)))
+#		new_corners.append(_transform_vert(offset, corner_verts_pos, 0))
+#
+#		corner_verts_pos = new_corners
 		
 	for i in range(0, prototype.mesh_names.size()):
 		var tile_mesh : Mesh = load("res://assets/tiles/" + prototype.mesh_names[i] + ".obj")
@@ -300,7 +365,7 @@ func _add_mesh_for_prototype_on_quad(prototype, quad, array_mesh, possibilities 
 		for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
 			var vert = tile_arrays[Mesh.ARRAY_VERTEX][v]
 			vert = rot_matrix.xform(vert)
-			vert = _transform_vert(vert, corner_verts_pos, prototype.rot)
+			vert = _transform_vert(vert, corner_verts_pos, prototype.rot, cell.layer)
 			tile_arrays[Mesh.ARRAY_VERTEX][v] = vert
 			
 		# add the new mesh to the array mesh
@@ -308,86 +373,86 @@ func _add_mesh_for_prototype_on_quad(prototype, quad, array_mesh, possibilities 
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
 
 
-func _generate_surface_from_voxels():
-	var surface_mesh = ArrayMesh.new()
-	_globe_land.set_mesh(surface_mesh)
-	
-	for i in range(_icosphere_polys.size()):
-		var poly = _icosphere_polys[i] as Icosphere.Quad
-		# build an array of corners we need to match
-		var corners = []
-		corners.append(_voxels[poly.v[0]]) # bottom
-		corners.append(_voxels[poly.v[1]]) # bottom
-		corners.append(_voxels[poly.v[2]]) # bottom
-		corners.append(_voxels[poly.v[3]]) # bottom
-		corners.append(0) # top
-		corners.append(0) # top
-		corners.append(0) # top
-		corners.append(0) # top
-		
-		if not corners.has(1):
-			continue
-		
-		# find a prototype that matches
-		var matched = false
-		var matched_prot = null
-		for prototype in _prototypes:
-			if prototype.corners[0] == corners[0] and \
-				prototype.corners[1] == corners[1] and \
-				prototype.corners[2] == corners[2] and \
-				prototype.corners[3] == corners[3]:
-				
-				matched = true
-				matched_prot = prototype
-				break
-		
-		if matched:
-			var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
-			var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-			
-			### transform the mesh to fit the tile
-			# get the final position of all the corner verts
-			var corner_verts_pos = []
-			for j in range(0, 4):
-				corner_verts_pos.append(_icosphere_verts[poly.v[j]])
-			
-			var tile_centre = _icosphere_verts[poly.v[0]]
-			tile_centre += _icosphere_verts[poly.v[1]]
-			tile_centre += _icosphere_verts[poly.v[2]]
-			tile_centre += _icosphere_verts[poly.v[3]]
-			tile_centre /= 4.0
-			
-			var trans := Transform.IDENTITY
-			# rotate so that up is always the surface normal
-			var n = tile_centre.normalized()
-			var r = Vector3(0.0, 1.0, 0.0)
-			var e = r.cross(n).normalized()
-			var d = n.cross(e).normalized()
-			trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
-			
-			# transform each vert in the prototype mesh
-			for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
-				tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(tile_arrays[Mesh.ARRAY_VERTEX][v], corner_verts_pos, matched_prot.mesh_rot)
-				#tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
-				
-			# add the new mesh to the array mesh
-			surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-			surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
-			
-			if matched_prot.mirror:
-				var mirrored_tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
-				for v in range(0, mirrored_tile_arrays[Mesh.ARRAY_VERTEX].size()):
-					var vert = mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v]
-					vert.x = -vert.x
-					vert.z = -vert.z
-					mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(vert, corner_verts_pos, matched_prot.mesh_rot)
-					#mirrored_tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
-					
-				surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mirrored_tile_arrays)
-				surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
+#func _generate_surface_from_voxels():
+#	var surface_mesh = ArrayMesh.new()
+#	_globe_land.set_mesh(surface_mesh)
+#
+#	for i in range(_icosphere_polys.size()):
+#		var poly = _icosphere_polys[i] as Icosphere.Quad
+#		# build an array of corners we need to match
+#		var corners = []
+#		corners.append(_voxels[poly.v[0]]) # bottom
+#		corners.append(_voxels[poly.v[1]]) # bottom
+#		corners.append(_voxels[poly.v[2]]) # bottom
+#		corners.append(_voxels[poly.v[3]]) # bottom
+#		corners.append(0) # top
+#		corners.append(0) # top
+#		corners.append(0) # top
+#		corners.append(0) # top
+#
+#		if not corners.has(1):
+#			continue
+#
+#		# find a prototype that matches
+#		var matched = false
+#		var matched_prot = null
+#		for prototype in _prototypes:
+#			if prototype.corners[0] == corners[0] and \
+#				prototype.corners[1] == corners[1] and \
+#				prototype.corners[2] == corners[2] and \
+#				prototype.corners[3] == corners[3]:
+#
+#				matched = true
+#				matched_prot = prototype
+#				break
+#
+#		if matched:
+#			var tile_mesh : Mesh = load("res://assets/tiles/" + matched_prot.mesh + ".obj")
+#			var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
+#
+#			### transform the mesh to fit the tile
+#			# get the final position of all the corner verts
+#			var corner_verts_pos = []
+#			for j in range(0, 4):
+#				corner_verts_pos.append(_icosphere_verts[poly.v[j]])
+#
+#			var tile_centre = _icosphere_verts[poly.v[0]]
+#			tile_centre += _icosphere_verts[poly.v[1]]
+#			tile_centre += _icosphere_verts[poly.v[2]]
+#			tile_centre += _icosphere_verts[poly.v[3]]
+#			tile_centre /= 4.0
+#
+#			var trans := Transform.IDENTITY
+#			# rotate so that up is always the surface normal
+#			var n = tile_centre.normalized()
+#			var r = Vector3(0.0, 1.0, 0.0)
+#			var e = r.cross(n).normalized()
+#			var d = n.cross(e).normalized()
+#			trans *= Transform(e, n, -d, Vector3(0.0, 0.0, 0.0))
+#
+#			# transform each vert in the prototype mesh
+#			for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
+#				tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(tile_arrays[Mesh.ARRAY_VERTEX][v], corner_verts_pos, matched_prot.mesh_rot)
+#				#tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
+#
+#			# add the new mesh to the array mesh
+#			surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
+#			surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
+#
+#			if matched_prot.mirror:
+#				var mirrored_tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
+#				for v in range(0, mirrored_tile_arrays[Mesh.ARRAY_VERTEX].size()):
+#					var vert = mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v]
+#					vert.x = -vert.x
+#					vert.z = -vert.z
+#					mirrored_tile_arrays[Mesh.ARRAY_VERTEX][v] = _transform_vert(vert, corner_verts_pos, matched_prot.mesh_rot)
+#					#mirrored_tile_arrays[Mesh.ARRAY_NORMAL][v] = trans.xform(tile_arrays[Mesh.ARRAY_NORMAL][v])
+#
+#				surface_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, mirrored_tile_arrays)
+#				surface_mesh.surface_set_material(surface_mesh.get_surface_count() - 1, land_material)
 
 
-func _transform_vert(var vert : Vector3, var corners, var rot : int) -> Vector3:
+func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer : int) -> Vector3:
 	# flatten 3D vert 
 	var vert_2d = Vector2(vert.x, vert.z)
 	
@@ -401,9 +466,10 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int) -> Vector3:
 	var new_x2 = lerp(corners[(3 - rot) % 4], corners[(2 - rot) % 4], vert_x)
 	var new_vert = lerp(new_x1, new_x2, vert_y)
 	
-	# add height (map to a hardcoded fraction of the sphere radius for now)
+	# add height
 	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
-	return new_vert.normalized() * (radius + (vert_height * 0.2) * radius)
+	var height = radius + (radius * 0.1) * (float(layer) + vert_height)
+	return new_vert.normalized() * height
 	
 	
 func set_iterations(val : int) -> void: 
