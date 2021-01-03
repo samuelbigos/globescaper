@@ -5,6 +5,7 @@ var _rng = RandomNumberGenerator.new()
 
 var _current = -1
 var _wave = []
+var _collapsed = []
 var _stack = []
 var _sum_of_weights = []
 var _sum_of_weight_log_weights = []
@@ -20,6 +21,7 @@ func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int
 	_rng.randomize()
 	
 	_wave = []
+	_collapsed = []
 	_entropy = []
 	_layer = 0
 	
@@ -54,6 +56,7 @@ func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int
 		else:
 			_wave.append(domain.duplicate())
 			
+		_collapsed.append(false)
 		_entropy.append(9999.9)
 		
 	_cell_to_idx = {}
@@ -79,7 +82,7 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 		return false
 	
 	# pick a weighted random tile from this cell's domain and remove all others
-	var rand_tile = -1		
+	var rand_tile = -1
 	var sum_of_weights = 0.0
 	for i in range(0, _wave[_current].size()):
 		sum_of_weights += i_prototypes[_wave[_current][i]].weight
@@ -96,6 +99,7 @@ func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
 		
 	_wave[_current] = []
 	_wave[_current].append(rand_tile)
+	_collapsed[_current] = true
 	_last_added = _current
 	
 	# propagate the change to every other cell's domain, reducing possibility space
@@ -193,8 +197,12 @@ func _wfc_observe(wave) -> int:
 	var lowest_entropy_value := 99999.9
 	var lowest_entropy_index := -1
 	for i in range(0, wave.size()):
-		if wave[i].size() == 1:
+		if _collapsed[i]:
 			continue
+			
+		if _entropy[i] == 0.0:
+			lowest_entropy_index = i
+			break
 			
 		if _entropy[i] < lowest_entropy_value:
 			lowest_entropy_value = _entropy[i]

@@ -177,4 +177,5 @@ void fragment()
 	}
 	
 	ALBEDO = water_col;
+	ALPHA = 1.0;
 }

@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=2]
+[gd_scene load_steps=15 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -6,11 +6,10 @@
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
 [ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
 [ext_resource path="res://assets/palette.png" type="Texture" id=6]
-[ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
+[ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
 
-[sub_resource type="ShaderMaterial" id=1]
-shader = ExtResource( 7 )
-shader_param/u_texture = ExtResource( 6 )
+[sub_resource type="SpatialMaterial" id=8]
+albedo_texture = ExtResource( 6 )
 
 [sub_resource type="Texture3D" id=2]
 data = {
@@ -29,6 +28,9 @@ shader_param/u_shallow_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_camera_pos = Vector3( 0, 0, 0 )
 shader_param/u_3d_noise = SubResource( 2 )
 
+[sub_resource type="ShaderMaterial" id=7]
+shader = ExtResource( 8 )
+
 [sub_resource type="ShaderMaterial" id=4]
 shader = ExtResource( 4 )
 
@@ -39,8 +41,9 @@ radius = 10.0
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
-land_material = SubResource( 1 )
+land_material = SubResource( 8 )
 water_material = SubResource( 3 )
+poss_cube_material = SubResource( 7 )
 radius = 10.0
 relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
@@ -71,7 +74,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 19.8165 )
+transform = Transform( 1, 0, 0, 0, 0.826973, -0.562242, 0, 0.562242, 0.826973, 0, -7.1675, 17.2536 )
 
 [node name="Area" type="Area" parent="."]
 

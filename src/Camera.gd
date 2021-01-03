@@ -5,6 +5,7 @@ var _velocity := Vector2()
 var _mouse_position := Vector2()
 var _follow_target := false
 var _target := Vector3()
+var _did_input = false
 
 onready var _v_gimbal = get_node("VGimbal")
 onready var _camera = get_node("VGimbal/Camera")
@@ -14,6 +15,8 @@ func _process(delta : float) -> void:
 	
 	if Input.is_action_just_pressed("mouse_right"):
 		_mouse_position = get_viewport().get_mouse_position()
+		enable_manual_control()
+		_did_input = true
 	elif Input.is_action_pressed("mouse_right"):
 		_velocity = _mouse_position - get_viewport().get_mouse_position()
 		_mouse_position = get_viewport().get_mouse_position()
@@ -27,8 +30,9 @@ func _process(delta : float) -> void:
 		_velocity = lerp(_velocity, Vector2(0.0, 0.0), delta)
 
 func set_orientation(lookat : Vector3):
-	_follow_target = true
-	_target = lookat.normalized()
+	if not _did_input:
+		_follow_target = true
+		_target = lookat.normalized()
 	
 func enable_manual_control():
 	_follow_target = false
