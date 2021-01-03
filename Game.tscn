@@ -1,15 +1,17 @@
-[gd_scene load_steps=15 format=2]
+[gd_scene load_steps=19 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
 [ext_resource path="res://assets/shaders/WaterShader.shader" type="Shader" id=3]
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
 [ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
-[ext_resource path="res://assets/palette.png" type="Texture" id=6]
+[ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=6]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
+[ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
+[ext_resource path="res://assets/palette.png" type="Texture" id=10]
 
-[sub_resource type="SpatialMaterial" id=8]
-albedo_texture = ExtResource( 6 )
+[sub_resource type="SpatialMaterial" id=11]
+albedo_texture = ExtResource( 10 )
 
 [sub_resource type="Texture3D" id=2]
 data = {
@@ -31,6 +33,12 @@ shader_param/u_3d_noise = SubResource( 2 )
 [sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 8 )
 
+[sub_resource type="ShaderMaterial" id=9]
+shader = ExtResource( 6 )
+
+[sub_resource type="ShaderMaterial" id=10]
+shader = ExtResource( 9 )
+
 [sub_resource type="ShaderMaterial" id=4]
 shader = ExtResource( 4 )
 
@@ -41,9 +49,11 @@ radius = 10.0
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
-land_material = SubResource( 8 )
+land_material = SubResource( 11 )
 water_material = SubResource( 3 )
 poss_cube_material = SubResource( 7 )
+voxel_inside_material = SubResource( 9 )
+voxel_outside_material = SubResource( 10 )
 radius = 10.0
 relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )

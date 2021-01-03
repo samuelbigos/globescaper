@@ -24,13 +24,18 @@ class Cell:
 	var layer = 0
 	var neighbors = []
 	var centre : Vector3
+	var quad := -1
+	var index := -1
 	
 	
 const Icosphere = preload("Icosphere.gd")
 
+# exposed
 export var land_material : Material
 export var water_material : Material
 export var poss_cube_material : Material
+export var voxel_inside_material : Material
+export var voxel_outside_material : Material
 export(float, 0.1, 10.0) var radius = 1.0 setget set_radius
 export(int, 0, 7) var iterations = 2 setget set_iterations
 export var relax_iterations : int = 30
@@ -40,7 +45,10 @@ export var water_shallow_colour : Color
 export var cell_height = 1.0
 export var grid_height = 5
 export var water_height = 0.5
+export var wfc_visualisation = false
+export var voxel_space_visualisation = false
 
+# members
 var _generated := false
 var _icosphere = null
 var _noise = null
@@ -51,7 +59,6 @@ var _icosphere_verts = []
 var _icosphere_polys = []
 var _vert_poly_neighbors = []
 var _prototypes = []
-var _voxels = []
 var _tiles = []
 var _tile_meshes = []
 var _wfc_data = []
@@ -59,10 +66,17 @@ var _wfc_added = []
 var _wfc_step = 0.0
 var _wfc_finished = false
 var _surface_generate = false
+
+# visualisations
 var _possibility_cubes = []
+var _voxel_spheres = []
 
+# grid
 var _grid_cells = []
+var _grid_voxels = []
+var _grid_verts = []
 
+# input
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
 
@@ -217,25 +231,29 @@ func _generate() -> void:
 	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
 		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (radius + water_height * 1.01)
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-	_globe_wireframe.set_mesh(globe_wireframe_mesh)	
-		
-	_voxels = []
-	_voxels.resize(_icosphere_verts.size())
-	for i in range(0, _voxels.size()):
-		_voxels[i] = 0
-		
-	# build a dictionary of all poly neighbors for each vert.
-	_vert_poly_neighbors.resize(_icosphere_verts.size())
-	for i in range(0, _icosphere_verts.size()):
-		_vert_poly_neighbors[i] = []
-		
-	for i in range(0, _icosphere_polys.size()):
-		for j in range(0, _icosphere_polys[i].neighbors.size()):
-			for v in range(0, _icosphere_polys[i].neighbors[j].v.size()):
-				var vert = _icosphere_polys[i].neighbors[j].v[v]
-				if not _vert_poly_neighbors[vert].has(_icosphere_polys[i].neighbors[j]):
-					_vert_poly_neighbors[vert].append(_icosphere_polys[i].neighbors[j])
-					
+	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+	
+	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
+	# with a 2D array
+	_grid_voxels = []
+	_grid_verts = []
+	_voxel_spheres = []
+	for v in range(0, _icosphere_verts.size()):
+		_grid_voxels.append([])
+		_grid_verts.append([])
+		_voxel_spheres.append([])
+		for h in range(0, grid_height):
+			_grid_voxels[v].append(0) # voxel field starts out zero-initialised and gets filled in as WFC runs
+			_grid_verts[v].append(_icosphere_verts[v] + _icosphere_verts[v].normalized() * cell_height * h)
+			if voxel_space_visualisation:
+				var voxel_sphere = MeshInstance.new()
+				var voxel_sphere_mesh = SphereMesh.new()
+				voxel_sphere_mesh.radial_segments = 8
+				voxel_sphere_mesh.rings = 4
+				voxel_sphere.set_mesh(voxel_sphere_mesh)
+				_voxel_spheres[v].append(voxel_sphere)
+				add_child(voxel_sphere)
+
 	# convert from quads on a sphere to cubes in our 3D grid space where the bottom of the lowest
 	# level of the grid is the quad on the surface of the sphere
 	var quad_cube_mapping = []
@@ -249,14 +267,17 @@ func _generate() -> void:
 			cell.centre = Vector3(0.0, 0.0, 0.0)
 			for v in range(0, 4):
 				var vert = _icosphere_verts[_icosphere_polys[i].v[v]]
-				cell.v_bot.append(vert + (vert.normalized() * cell_height * float(grid_height)))
-				cell.v_top.append(vert + (vert.normalized() * cell_height * float(grid_height + 1)))
+				#TODO: Don't store verts as floats but as index into vert array
+				cell.v_bot.append(vert + (vert.normalized() * cell_height * float(h)))
+				cell.v_top.append(vert + (vert.normalized() * cell_height * float(h + 1)))
 				cell.centre += cell.v_bot[v - 1]
 				cell.centre += cell.v_top[v - 1]
 		
 			cell.centre /= 8.0
+			cell.quad = i
 			quad_cube_mapping[i].append(cell)
 			_grid_cells.append(cell)
+			cell.index = _grid_cells.size() - 1
 			
 	# set up cube neighbors
 	for i in range(0, quad_cube_mapping.size()):
@@ -276,53 +297,46 @@ func _generate() -> void:
 			else: cube.neighbors.append(null)
 					
 	# add possibility cubes
-	var verts = []
-#	verts.append(Vector3(-1, -1, 1))
-#	verts.append(Vector3(-1, 1, 1))
-#	verts.append(Vector3(-1, -1, -1))
-#	verts.append(Vector3(-1, 1, -1))
-#	verts.append(Vector3(1, -1, 1))
-#	verts.append(Vector3(1, 1, 1))
-#	verts.append(Vector3(1, -1, -1))
-#	verts.append(Vector3(1, 1, -1))	
-	var indices = [0,1,2, 2,3,0, \
-				   1,0,4, 4,5,1, \
-				   2,1,5, 5,6,2,
-				   3,2,6, 6,7,3,
-				   0,3,7, 7,4,0,
-				   4,7,6, 6,5,4]
-	
-	var st = SurfaceTool.new()
-	for i in range(0, _grid_cells.size()):
-		var cube = MeshInstance.new()
-		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if wfc_visualisation:
+		var verts = []
+		var indices = [0,1,2, 2,3,0,
+					   1,0,4, 4,5,1,
+					   2,1,5, 5,6,2,
+					   3,2,6, 6,7,3,
+					   0,3,7, 7,4,0,
+					   4,7,6, 6,5,4]
 		
-		for v in _grid_cells[i].v_top:
-			var n = v - _grid_cells[i].centre
-			var v_height = radius + (cell_height * (float(_grid_cells[i].layer) + 1.0))
-			var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-			v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
-			st.add_normal(n.normalized())
-			st.add_vertex(v)
+		var st = SurfaceTool.new()
+		for i in range(0, _grid_cells.size()):
+			var cube = MeshInstance.new()
+			st.begin(Mesh.PRIMITIVE_TRIANGLES)
 			
-		for v in _grid_cells[i].v_bot:
-			var n = v - _grid_cells[i].centre
-			var v_height = radius + (cell_height * (float(_grid_cells[i].layer)))
-			var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-			v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
-			st.add_normal(n.normalized())
-			st.add_vertex(v)
+			for v in _grid_cells[i].v_top:
+				var n = v - _grid_cells[i].centre
+				var v_height = radius + (cell_height * (float(_grid_cells[i].layer) + 1.0))
+				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
+				v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
+				st.add_normal(n.normalized())
+				st.add_vertex(v)
+				
+			for v in _grid_cells[i].v_bot:
+				var n = v - _grid_cells[i].centre
+				var v_height = radius + (cell_height * (float(_grid_cells[i].layer)))
+				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
+				v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
+				st.add_normal(n.normalized())
+				st.add_vertex(v)
+				
+			for idx in indices:
+				st.add_index(idx)
 			
-		for idx in indices:
-			st.add_index(idx)
-		
-		cube.set_mesh(st.commit())
-		cube.set_surface_material(0, poss_cube_material)
-		cube.cast_shadow = false
-		_possibility_cubes.append(cube)
-		var height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-		cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
-		add_child(cube)
+			cube.set_mesh(st.commit())
+			cube.set_surface_material(0, poss_cube_material)
+			cube.cast_shadow = false
+			_possibility_cubes.append(cube)
+			var height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
+			cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
+			add_child(cube)
 				
 	_generated = true
 		
@@ -358,12 +372,11 @@ func _process(delta : float) -> void:
 		
 		if _wfc_finished:
 			_camera.enable_manual_control()
-			
-		#_generate_surface_from_voxels()	
 
 
 func _generate_surface_from_wfc():
 	for i in range(_grid_cells.size()):
+		
 		if _wfc_added[i]:
 			continue
 			
@@ -371,15 +384,52 @@ func _generate_surface_from_wfc():
 			
 		# find a prototype that matches
 		var tile_possibilities = _wfc_data[i]
-		_update_possibility_cube(i, tile_possibilities.size())
+		if wfc_visualisation:
+			_update_possibility_cube(i, tile_possibilities.size())
 		var mesh = _globe_land.get_mesh()
+		
 		if tile_possibilities.size() == 1:
-			# draw the tile
+			
 			var matched_prot = _prototypes[tile_possibilities[0]]
+			_update_voxel_space(i, matched_prot)
+			
+			# draw the tile if all neighbor tiles are collapsed
+#			var neighbors_collapsed = true
+#			for n in range(0, _grid_cells[i].neighbors.size()):
+#				if _grid_cells[i].neighbors[n] == null:
+#					continue
+#				if _wfc_data[_grid_cells[i].neighbors[n].index].size() != 1:
+#					neighbors_collapsed = false
+#					break
+			
+			#if neighbors_collapsed:
 			_add_mesh_for_prototype_on_quad(matched_prot, cell, mesh)
 			_wfc_added[i] = true
-			_possibility_cubes[i].queue_free()
+			if wfc_visualisation:
+				_possibility_cubes[i].queue_free()
+				
 
+func _update_voxel_space(i, prototype : Prototype):
+	var quad = _icosphere_polys[_grid_cells[i].quad] as Icosphere.Quad
+	for v in range(0, quad.v.size()):
+		var inside = prototype.corners_bot[v] != 0
+		_grid_voxels[quad.v[v]][_grid_cells[i].layer] = inside
+		
+		if _grid_cells[i].layer < grid_height - 1:
+			inside = prototype.corners_top[v] != 0
+			_grid_voxels[quad.v[v]][_grid_cells[i].layer + 1] = inside
+		
+		if voxel_space_visualisation:
+			var sphere = _voxel_spheres[quad.v[v]][_grid_cells[i].layer] as MeshInstance
+			var pos = _icosphere_verts[quad.v[v]].normalized() * (radius + (cell_height * _grid_cells[i].layer))
+			sphere.transform.origin = pos
+			var size = 0.05
+			sphere.scale = Vector3(size, size, size)
+			if inside:
+				sphere.get_mesh().surface_set_material(0, voxel_inside_material)
+			else:
+				sphere.get_mesh().surface_set_material(0, voxel_outside_material)
+	
 
 func _update_possibility_cube(cell, size):
 	if size == 1 or _possibility_cubes.size() <= cell or _possibility_cubes[cell] == null:
@@ -412,35 +462,32 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * prototype.mesh_rots[i])
 		for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
 			var vert = tile_arrays[Mesh.ARRAY_VERTEX][v]
+			var normal = tile_arrays[Mesh.ARRAY_NORMAL][v]
+			normal += vert
+			normal = rot_matrix.xform(normal)
+			normal = _transform_vert(normal, corner_verts_pos, prototype.rot, cell.layer)
+						
 			vert = rot_matrix.xform(vert)
 			vert = _transform_vert(vert, corner_verts_pos, prototype.rot, cell.layer)
+			normal -= vert
+			
 			tile_arrays[Mesh.ARRAY_VERTEX][v] = vert
-			
-		# recalculate normals
-		for n in range(0, tile_arrays[Mesh.ARRAY_NORMAL].size()):
-			tile_arrays[Mesh.ARRAY_NORMAL][n] = Vector3(0.0, 0.0, 0.0)
-			
-		for idx in range(0, tile_arrays[Mesh.ARRAY_INDEX].size(), 3):
-			var v1_i = tile_arrays[Mesh.ARRAY_INDEX][idx]
-			var v2_i = tile_arrays[Mesh.ARRAY_INDEX][idx + 1]
-			var v3_i = tile_arrays[Mesh.ARRAY_INDEX][idx + 2]
-			var v1 = tile_arrays[Mesh.ARRAY_VERTEX][v1_i]
-			var v2 = tile_arrays[Mesh.ARRAY_VERTEX][v2_i]
-			var v3 = tile_arrays[Mesh.ARRAY_VERTEX][v3_i]
-			var face_normal = (v2 - v3).cross(v1 - v2).normalized()
-			tile_arrays[Mesh.ARRAY_NORMAL][v1_i] += face_normal
-			tile_arrays[Mesh.ARRAY_NORMAL][v2_i] += face_normal
-			tile_arrays[Mesh.ARRAY_NORMAL][v3_i] += face_normal
-			
-		for n in range(0, tile_arrays[Mesh.ARRAY_NORMAL].size()):
-			tile_arrays[Mesh.ARRAY_NORMAL][n] = tile_arrays[Mesh.ARRAY_NORMAL][n].normalized()			
+			tile_arrays[Mesh.ARRAY_NORMAL][v] = normal
 			
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
+		
+
+func _nearest_point_on_line(var line_point, var line_dir, var point):
+	var v = point - line_point
+	var d = v.dot(line_dir)
+	return line_point + line_dir * d
 
 
 func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer : int) -> Vector3:
+	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
+	
 	# flatten 3D vert 
 	var vert_2d = Vector2(vert.x, vert.z)
 	
@@ -452,12 +499,11 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer :
 	# calculate new vert position using quad corners and weights we found above
 	var new_x1 = lerp(corners[(0 - rot) % 4], corners[(1 - rot) % 4], vert_x)
 	var new_x2 = lerp(corners[(3 - rot) % 4], corners[(2 - rot) % 4], vert_x)
-	var new_vert = lerp(new_x1, new_x2, vert_y)
+	vert = lerp(new_x1, new_x2, vert_y)
 	
 	# add height
-	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
 	var height = radius + (cell_height) * (float(layer) + vert_height)
-	return new_vert.normalized() * height
+	return vert.normalized() * height
 	
 	
 func set_iterations(val : int) -> void: 
