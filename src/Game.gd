@@ -47,6 +47,7 @@ export var grid_height = 5
 export var water_height = 0.5
 export var wfc_visualisation = false
 export var voxel_space_visualisation = false
+export var voxel_texture_resolution = 2
 
 # members
 var _generated := false
@@ -79,6 +80,10 @@ var _grid_verts = []
 # input
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
+
+# rendering
+var _voxel_texture : Texture3D = null
+var _voxel_mesh_data : Image = null
 
 onready var _camera = get_node("HGimbal")
 onready var _globe = get_node("Globe")
@@ -298,7 +303,6 @@ func _generate() -> void:
 					
 	# add possibility cubes
 	if wfc_visualisation:
-		var verts = []
 		var indices = [0,1,2, 2,3,0,
 					   1,0,4, 4,5,1,
 					   2,1,5, 5,6,2,
@@ -337,7 +341,62 @@ func _generate() -> void:
 			var height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
 			cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
 			add_child(cube)
+			
+	# write the new voxel info into the voxel texture
+	_voxel_texture = Texture3D.new()
+	_voxel_texture.create(voxel_texture_resolution, voxel_texture_resolution, 2, Image.FORMAT_RGBA8, 0)
+	
+	var verts = [Vector3(0.0, 1.0, 1.0),
+				 Vector3(1.0, 1.0, 1.0),
+				 Vector3(1.0, 1.0, 0.0),
+				 Vector3(0.0, 1.0, 0.0),
+				 Vector3(0.0, 0.0, 1.0),
+				 Vector3(1.0, 0.0, 1.0),
+				 Vector3(1.0, 0.0, 0.0),
+				 Vector3(0.0, 0.0, 0.0)]
 				
+	for v in range(0, verts.size()):
+		verts[v] = verts[v] * 2.0 - Vector3(1.0, 1.0, 1.0)
+		verts[v] *= 5.0
+		verts[v] += Vector3(10.0, 0.0, 0.0)
+				
+	var indices = [0,1,2, 2,3,0,
+				   1,0,4, 4,5,1,
+				   2,1,5, 5,6,2,
+				   3,2,6, 6,7,3,
+				   0,3,7, 7,4,0,
+				   4,7,6, 6,5,4]
+				
+	var image_size = Vector2(256, 1)
+	_voxel_mesh_data = Image.new()
+	_voxel_mesh_data.create(image_size.x, image_size.y, false, Image.FORMAT_RGBAF)
+	_voxel_mesh_data.lock()
+	for i in range(0, indices.size(), 3):
+		if i >= image_size.x - 1:
+			break
+		
+		var col
+		col = Color(verts[indices[i + 0]].x, verts[indices[i + 0]].y, verts[indices[i + 0]].z)
+		_voxel_mesh_data.set_pixel(i + 0, 0, col)
+		print(col)
+		col = Color(verts[indices[i + 1]].x, verts[indices[i + 1]].y, verts[indices[i + 1]].z)
+		_voxel_mesh_data.set_pixel(i + 1, 0, col)
+		print(col)
+		col = Color(verts[indices[i + 2]].x, verts[indices[i + 2]].y, verts[indices[i + 2]].z)
+		_voxel_mesh_data.set_pixel(i + 2, 0, col)
+		print(col)
+		
+	_voxel_mesh_data.unlock()
+	
+	var image_texture = ImageTexture.new()
+	image_texture.create_from_image(_voxel_mesh_data)
+	image_texture.flags = 0
+	
+	land_material.set_shader_param("u_voxels", _voxel_texture)
+	land_material.set_shader_param("u_mesh_tex", image_texture)
+	land_material.set_shader_param("u_mesh_tex_size", image_size)
+	land_material.set_shader_param("u_num_tris", indices.size() / 3)
+					
 	_generated = true
 		
 
@@ -368,10 +427,15 @@ func _process(delta : float) -> void:
 		for v in _grid_cells[_wfc._last_added].v_bot:
 			quad_center += v
 		quad_center /= 4.0
-		_camera.set_orientation(quad_center)
+		#_camera.set_orientation(quad_center)
 		
 		if _wfc_finished:
 			_camera.enable_manual_control()
+			_on_wfc_complete()
+			
+		
+func _on_wfc_complete():
+	pass
 
 
 func _generate_surface_from_wfc():
@@ -418,7 +482,7 @@ func _update_voxel_space(i, prototype : Prototype):
 		if _grid_cells[i].layer < grid_height - 1:
 			inside = prototype.corners_top[v] != 0
 			_grid_voxels[quad.v[v]][_grid_cells[i].layer + 1] = inside
-		
+				
 		if voxel_space_visualisation:
 			var sphere = _voxel_spheres[quad.v[v]][_grid_cells[i].layer] as MeshInstance
 			var pos = _icosphere_verts[quad.v[v]].normalized() * (radius + (cell_height * _grid_cells[i].layer))
