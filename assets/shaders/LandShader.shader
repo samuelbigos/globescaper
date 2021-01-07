@@ -1,4 +1,5 @@
 shader_type spatial;
+//render_mode unshaded;
 
 uniform sampler2D u_texture;
 uniform sampler3D u_voxels;
@@ -9,16 +10,26 @@ uniform vec3 u_voxels_offset = vec3(0.0, 0.0, 0.0);
 uniform float u_world_size = 10.0;
 uniform int u_voxel_res = 2;
 
+uniform sampler2D u_sdf;
+
 varying vec3 v_vertex;
+varying vec3 v_normal;
 
 void vertex()
 {
 	v_vertex = VERTEX;
+	v_normal = NORMAL;
 }
 
 vec3 tri_sample(sampler3D sampler, vec3 uv, vec3 texel_size)
 {
 	return texture(sampler, clamp(uv * texel_size, vec3(0.0), vec3(0.999))).rgb;
+}
+
+vec2 mesh_idx_to_img_uv(int idx, vec2 tex_size)
+{
+	vec2 uv = vec2(float(idx % int(tex_size.x)), float(idx / int(tex_size.y)));
+	return uv / u_mesh_tex_size;
 }
 
 vec3 tri_lerp(sampler3D sampler, vec3 uv, vec3 tex_size)
@@ -78,6 +89,8 @@ float udTriangle( vec3 p, vec3 a, vec3 b, vec3 c )
 
 void fragment()
 {
+	ALBEDO = texture(u_texture, UV).rgb;
+	
 	if (false) // draw 3d texture
 	{
 		vec3 uv = ((v_vertex - u_voxels_offset) / u_world_size); // adjust by world bounds and offset
@@ -88,17 +101,18 @@ void fragment()
 			ALBEDO = tri_lerp(u_voxels, uv, vec3(float(u_voxel_res))).rgb;
 	}
 	
-	if (true) // draw sdf
+	if (false) // draw sdf
 	{
-		vec3 pixel = v_vertex;
+		vec3 pixel = v_vertex + normalize(v_normal) * 0.5;
 		float closest_dist = 999999.9;
 		vec3 closest_tri[3];
-		for (int v = 0; v < u_num_tris * 3; v += 3)
+		for (int i = 0; i < u_num_tris; i++)
 		{
-			vec3 v1 = texture(u_mesh_tex, vec2(float(v) / u_mesh_tex_size.x, 0.0)).xyz;
-			vec3 v2 = texture(u_mesh_tex, vec2(float(v + 1)  / u_mesh_tex_size.x, 0.0)).xyz;
-			vec3 v3 = texture(u_mesh_tex, vec2(float(v + 2)  / u_mesh_tex_size.x, 0.0)).xyz;
-			
+			int v = i * 3;
+			vec3 v1 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 0, u_mesh_tex_size)).xyz;
+			vec3 v2 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 1, u_mesh_tex_size)).xyz;
+			vec3 v3 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 2, u_mesh_tex_size)).xyz;
+				
 			float dist = udTriangle(pixel, v1, v2, v3);
 			if (dist < closest_dist)
 			{
@@ -112,13 +126,12 @@ void fragment()
 		vec3 crossp = cross(closest_tri[1] - closest_tri[0], closest_tri[2] - closest_tri[0]);
 		float dotp = dot(normalize(crossp), normalize(closest_tri[0] - pixel));
 		
-		float sd = dist * sign(-dotp);
-		float distance_mod = 25.0;
-		sd = clamp(sd / distance_mod, -1.0, 1.0);
+		float distance_mod = 0.25;
+		dist /= distance_mod;
 		
-		ALBEDO = vec3(sd, -sd, 0.0);
+		//ALBEDO = vec3(dist * step(0.0, dotp), dist * (1.0 - step(0.0, dotp)), 0.0);
 		
-		//ALBEDO = texture(u_mesh_tex, vec2(4.0 / , 0.0)).rgb;
+		float ao = clamp(dist, 0.0, 1.0);
+		ALBEDO = ALBEDO * ao;
 	}
-	//ALBEDO = texture(u_texture, UV).rgb;
 }

@@ -177,7 +177,6 @@ func _wfc_calc_entropy(domain):
 		sum_of_weight_log_weights += p * log(p)
 	return log(sum_of_weights) - sum_of_weight_log_weights / sum_of_weights
 	
-		
 func _wfc_compatible_h(s_prot, n_prot, sv, nv):
 	
 	#var s_slot = s_prot.slots[sv]

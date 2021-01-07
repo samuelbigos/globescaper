@@ -64,9 +64,10 @@ var _tiles = []
 var _tile_meshes = []
 var _wfc_data = []
 var _wfc_added = []
-var _wfc_step = 0.0
+var _wfc_step = 0.1
 var _wfc_finished = false
 var _surface_generate = false
+var _cell_add_queue = []
 
 # visualisations
 var _possibility_cubes = []
@@ -81,16 +82,13 @@ var _grid_verts = []
 var _mouse_hover := false
 var _mouse_pos_on_globe := Vector3()
 
-# rendering
-var _voxel_texture : Texture3D = null
-var _voxel_mesh_data : Image = null
-
 onready var _camera = get_node("HGimbal")
 onready var _globe = get_node("Globe")
 onready var _globe_wireframe = get_node("GlobeWireframe")
 onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
 onready var _globe_land : MeshInstance = get_node("GlobeLand")
 onready var _wfc = get_node("WaveFunctionCollapse")
+onready var _sdf = get_node("SDFGen")
 
 
 func _ready() -> void:
@@ -341,62 +339,7 @@ func _generate() -> void:
 			var height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
 			cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
 			add_child(cube)
-			
-	# write the new voxel info into the voxel texture
-	_voxel_texture = Texture3D.new()
-	_voxel_texture.create(voxel_texture_resolution, voxel_texture_resolution, 2, Image.FORMAT_RGBA8, 0)
-	
-	var verts = [Vector3(0.0, 1.0, 1.0),
-				 Vector3(1.0, 1.0, 1.0),
-				 Vector3(1.0, 1.0, 0.0),
-				 Vector3(0.0, 1.0, 0.0),
-				 Vector3(0.0, 0.0, 1.0),
-				 Vector3(1.0, 0.0, 1.0),
-				 Vector3(1.0, 0.0, 0.0),
-				 Vector3(0.0, 0.0, 0.0)]
 				
-	for v in range(0, verts.size()):
-		verts[v] = verts[v] * 2.0 - Vector3(1.0, 1.0, 1.0)
-		verts[v] *= 5.0
-		verts[v] += Vector3(10.0, 0.0, 0.0)
-				
-	var indices = [0,1,2, 2,3,0,
-				   1,0,4, 4,5,1,
-				   2,1,5, 5,6,2,
-				   3,2,6, 6,7,3,
-				   0,3,7, 7,4,0,
-				   4,7,6, 6,5,4]
-				
-	var image_size = Vector2(256, 1)
-	_voxel_mesh_data = Image.new()
-	_voxel_mesh_data.create(image_size.x, image_size.y, false, Image.FORMAT_RGBAF)
-	_voxel_mesh_data.lock()
-	for i in range(0, indices.size(), 3):
-		if i >= image_size.x - 1:
-			break
-		
-		var col
-		col = Color(verts[indices[i + 0]].x, verts[indices[i + 0]].y, verts[indices[i + 0]].z)
-		_voxel_mesh_data.set_pixel(i + 0, 0, col)
-		print(col)
-		col = Color(verts[indices[i + 1]].x, verts[indices[i + 1]].y, verts[indices[i + 1]].z)
-		_voxel_mesh_data.set_pixel(i + 1, 0, col)
-		print(col)
-		col = Color(verts[indices[i + 2]].x, verts[indices[i + 2]].y, verts[indices[i + 2]].z)
-		_voxel_mesh_data.set_pixel(i + 2, 0, col)
-		print(col)
-		
-	_voxel_mesh_data.unlock()
-	
-	var image_texture = ImageTexture.new()
-	image_texture.create_from_image(_voxel_mesh_data)
-	image_texture.flags = 0
-	
-	land_material.set_shader_param("u_voxels", _voxel_texture)
-	land_material.set_shader_param("u_mesh_tex", image_texture)
-	land_material.set_shader_param("u_mesh_tex_size", image_size)
-	land_material.set_shader_param("u_num_tris", indices.size() / 3)
-					
 	_generated = true
 		
 
@@ -412,63 +355,56 @@ func _process(delta : float) -> void:
 			closest_vert = i
 			closest_dist = dist_sq
 
-	_wfc_step -= delta
-	#if Input.is_action_just_pressed("mouse_left"):
-	if not _wfc_finished and _wfc_step < 0.0:
-		_wfc_step = 0.0
-		for i in range(0, 1):
-			_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
-			if _wfc_finished:
-				break
-		_wfc_data = _wfc._wave
-		_generate_surface_from_wfc()
-		
+	# process wfc
+	if not _wfc_finished:		
+		_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
+		_wfc_data = _wfc._wave		
 		var quad_center := Vector3()
 		for v in _grid_cells[_wfc._last_added].v_bot:
 			quad_center += v
 		quad_center /= 4.0
 		#_camera.set_orientation(quad_center)
-		
-		if _wfc_finished:
-			_camera.enable_manual_control()
-			_on_wfc_complete()
 			
+	# add new wfc tiles to a queue for meshing
+	_wfc_step -= delta
+	if _wfc_step < 0.0:
+	#if Input.is_action_just_released("mouse_left"):
+		_wfc_step = 0.0
+		if _wfc_data.size() > 0:
+			for i in range(_grid_cells.size()):
+				if wfc_visualisation:
+					_update_possibility_cube(i, _wfc_data[i].size())
+				if _wfc_added[i]:
+					continue
+				if _wfc_data[i].size() > 1:
+					continue
+					
+				_cell_add_queue.append(i)
+				_wfc_added[i] = true
+				print("added")
+				break
 		
-func _on_wfc_complete():
-	pass
-
-
+	# pump the mesh/sdf builder
+	_generate_surface_from_wfc()
+			
+	if Input.is_action_just_released("spacebar"):
+		$SDFGen/SDFVolume.visible = !$SDFGen/SDFVolume.visible
+		
 func _generate_surface_from_wfc():
-	for i in range(_grid_cells.size()):
-		
-		if _wfc_added[i]:
-			continue
-			
-		var cell = _grid_cells[i] as Cell
+	if _cell_add_queue.size() > 0:
+		var i = _cell_add_queue.pop_front()
 			
 		# find a prototype that matches
 		var tile_possibilities = _wfc_data[i]
-		if wfc_visualisation:
-			_update_possibility_cube(i, tile_possibilities.size())
-		var mesh = _globe_land.get_mesh()
-		
 		if tile_possibilities.size() == 1:
 			
 			var matched_prot = _prototypes[tile_possibilities[0]]
 			_update_voxel_space(i, matched_prot)
 			
-			# draw the tile if all neighbor tiles are collapsed
-#			var neighbors_collapsed = true
-#			for n in range(0, _grid_cells[i].neighbors.size()):
-#				if _grid_cells[i].neighbors[n] == null:
-#					continue
-#				if _wfc_data[_grid_cells[i].neighbors[n].index].size() != 1:
-#					neighbors_collapsed = false
-#					break
+			var mesh = _globe_land.get_mesh()
+			print("mesh")
+			_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
 			
-			#if neighbors_collapsed:
-			_add_mesh_for_prototype_on_quad(matched_prot, cell, mesh)
-			_wfc_added[i] = true
 			if wfc_visualisation:
 				_possibility_cubes[i].queue_free()
 				
@@ -511,6 +447,7 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 	for j in range(0, 4):
 		corner_verts_pos.append(cell.v_bot[j])
 		
+	var sdf_verts = []
 	for i in range(0, prototype.mesh_names.size()):
 		if prototype.mesh_names[i] == "0000-0000":
 			return
@@ -538,9 +475,15 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 			tile_arrays[Mesh.ARRAY_VERTEX][v] = vert
 			tile_arrays[Mesh.ARRAY_NORMAL][v] = normal
 			
+		for v in tile_arrays[Mesh.ARRAY_INDEX]:
+			sdf_verts.append(tile_arrays[Mesh.ARRAY_VERTEX][v])
+			
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
+		
+	# draw these meshes on the sdf
+	_sdf.set_mesh_texture(sdf_verts)
 		
 
 func _nearest_point_on_line(var line_point, var line_dir, var point):
