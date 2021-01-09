@@ -67,7 +67,7 @@ var _wfc_step = 0.1
 var _wfc_finished = false
 var _surface_generate = false
 var _cell_add_queue = []
-var _debug_display_mode = 0
+var _debug_display_mode = 1
 
 # visualisations
 var _possibility_cubes = []

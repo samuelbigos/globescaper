@@ -235,8 +235,8 @@
          "bottom": 1,
       },
       {
-         "mesh_names": ["cliff_1111-1000", "cliff_1111-1000"],
-         "mesh_rots": [0, 2],
+         "mesh_names": ["cliff_1111-1010"],
+         "mesh_rots": [0],
          "rotations": [0, 1, 2, 3],
          "corners_bot": [1, 1, 1, 1],
          "corners_top": [1, 0, 1, 0],

@@ -6,16 +6,16 @@
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
 [ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
 [ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=6]
+[ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
 [ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=10]
 [ext_resource path="res://assets/1px.png" type="Texture" id=11]
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
-[ext_resource path="res://assets/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
 
-[sub_resource type="SpatialMaterial" id=15]
-albedo_texture = ExtResource( 13 )
+[sub_resource type="ShaderMaterial" id=15]
+shader = ExtResource( 7 )
 
 [sub_resource type="Texture3D" id=2]
 data = {
@@ -111,7 +111,6 @@ mesh = SubResource( 8 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="."]
 transform = Transform( 0.512717, -0.617689, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
-shadow_enabled = true
 shadow_bias = 0.01
 
 [node name="HGimbal" type="Spatial" parent="."]
@@ -158,6 +157,7 @@ __meta__ = {
 }
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
+visible = false
 mesh = SubResource( 13 )
 material/0 = null
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]

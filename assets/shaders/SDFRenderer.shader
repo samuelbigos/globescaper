@@ -78,7 +78,7 @@ bool ray_hit(vec3 pos, out float dist)
 	dist = sample_sdf_1d(pos).r;
 	dist = dist * 2.0 - 1.0;
 	dist *= u_sdf_dist_mod;
-	return dist <= 0.0;
+	return dist <= 0.01;
 }
 
 void fragment()
@@ -95,10 +95,10 @@ void fragment()
 		float dist;
 		if (ray_hit(ray, dist))
 		{
-			steps = max_steps;
-			break;
+			//steps = max_steps;
+			//break;
 		}
-		ray += max(0.01, dist) * ray_dir;
+		ray += max(0.025, dist) * ray_dir;
 		float bounds = u_sdf_volume_radius;
 		if (ray.x > bounds || ray.y > bounds || ray.z > bounds 
 			|| ray.x < -bounds || ray.y < -bounds || ray.z < -bounds)
