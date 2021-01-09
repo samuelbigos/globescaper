@@ -47,7 +47,6 @@ export var grid_height = 5
 export var water_height = 0.5
 export var wfc_visualisation = false
 export var voxel_space_visualisation = false
-export var voxel_texture_resolution = 2
 
 # members
 var _generated := false
@@ -68,6 +67,7 @@ var _wfc_step = 0.1
 var _wfc_finished = false
 var _surface_generate = false
 var _cell_add_queue = []
+var _debug_display_mode = 0
 
 # visualisations
 var _possibility_cubes = []
@@ -381,14 +381,23 @@ func _process(delta : float) -> void:
 					
 				_cell_add_queue.append(i)
 				_wfc_added[i] = true
-				print("added")
 				break
 		
 	# pump the mesh/sdf builder
 	_generate_surface_from_wfc()
-			
+	
 	if Input.is_action_just_released("spacebar"):
-		$SDFGen/SDFVolume.visible = !$SDFGen/SDFVolume.visible
+		_debug_display_mode = (_debug_display_mode + 1) % 2
+		match _debug_display_mode:
+			0:
+				$SDFGen/SDFVolume.visible = true
+				$SDFGen/SDFPreview.visible = false
+			1:
+				$SDFGen/SDFVolume.visible = false
+				$SDFGen/SDFPreview.visible = false
+			2:
+				$SDFGen/SDFVolume.visible = true
+				$SDFGen/SDFPreview.visible = true
 		
 func _generate_surface_from_wfc():
 	if _cell_add_queue.size() > 0:
@@ -402,7 +411,6 @@ func _generate_surface_from_wfc():
 			_update_voxel_space(i, matched_prot)
 			
 			var mesh = _globe_land.get_mesh()
-			print("mesh")
 			_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
 			
 			if wfc_visualisation:

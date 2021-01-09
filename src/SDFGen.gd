@@ -1,9 +1,9 @@
 extends Node
 
-export var _sdf_max_width : int = 4096
-export var _sdf_resolution : int = 128
-export var _sdf_volume_radius := 14.0
-export var _sdf_dist_mod := 5.0
+export var _sdf_max_width : int = 8192
+export var _sdf_resolution : int = 256
+export var _sdf_volume_radius := 15.0
+export var _sdf_dist_mod := 2.0
 export var _mesh_image_size = Vector2(1024, 1024)
 export var _mesh_data_verts := 0
 
@@ -69,13 +69,13 @@ func set_mesh_texture(var verts):
 		mesh_data.set_pixel(x, y, col)
 		var v = verts[i]
 		ub = Vector3(max(ub.x, v.x), max(ub.y, v.y), max(ub.z, v.z))
-		lb = Vector3(min(ub.x, v.x), min(ub.y, v.y), min(ub.z, v.z))
+		lb = Vector3(min(lb.x, v.x), min(lb.y, v.y), min(lb.z, v.z))
 		
 	mesh_data.unlock()
 	
 	# calculate the bounding sphere
 	var centre = (ub + lb) / 2.0
-	var radius = ub.distance_to(lb) + _sdf_dist_mod * 1.0
+	var radius = ub.distance_to(centre) + _sdf_dist_mod
 	
 	_viewport_mat.set_shader_param("u_use_bounding_sphere", true)
 	_viewport_mat.set_shader_param("u_bound_origin", centre)
@@ -91,7 +91,6 @@ func set_mesh_texture(var verts):
 	_viewport_mat.set_shader_param("u_num_tris", verts.size() / 3)
 	_viewport_mat.set_shader_param("u_draw_idx", _draw_idx)
 	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
-	print("sdf")
 	_draw_idx += 1
 	
 func get_texture():

@@ -59,6 +59,41 @@ vec3 sdf_uv_to_world_pos(vec2 uv)
 	return pos;
 }
 
+int intersect_tri(vec3 ray_origin, vec3 ray_dir, vec3 v0, vec3 v1, vec3 v2)
+{
+	float EPSILON = 0.00001;
+	
+	float a,f,u,v;
+	vec3 edge1, edge2, h, s, q;
+    edge1 = v1 - v0;
+    edge2 = v2 - v0;
+    h = cross(ray_dir, edge2);
+    a = dot(edge1, h);
+    if (a > -EPSILON && a < EPSILON)
+        return 0; // this ray is parallel to this triangle.
+		
+	f = 1.0/a;
+    s = ray_origin - v0;
+	u = f * dot(s, h);
+	if (u < 0.0 || u > 1.0)
+        return 0;
+		
+	q = cross(s, edge1);
+    v = f * dot(ray_dir, q);
+    if (v < 0.0 || u + v > 1.0)
+        return 0;
+		
+	// at this stage we can compute t to find out where the intersection point is on the line.
+	float t = f * dot(edge2, q);
+    if (t > EPSILON) // ray intersection
+    {
+        //outIntersectionPoint = rayOrigin + rayVector * t;
+        return 1;
+    }
+    else // this means that there is a line intersection but not a ray intersection.
+        return 0;
+}
+
 void fragment() 
 {
 	// flip x when writing the sdf because reasons
@@ -69,23 +104,31 @@ void fragment()
 	if (u_use_bounding_sphere)
 	{
 		if (length(u_bound_origin - uv) > u_bound_radius)
-		{
 			skip = true;
-		}
 	}
 	
 	vec4 current = texture(u_sdf, UV);
 	
-	if (!skip || u_draw_idx == 0)
+	if (!skip)
 	{
 		float closest_dist = 999999.9;
 		vec3 closest_tri[3];
+		int intersections[3] = {0, 0, 0};
 		for (int i = 0; i < u_num_tris; i++)
 		{
 			int v = i * 3;
 			vec3 v1 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 0, u_mesh_tex_size)).xyz;
 			vec3 v2 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 1, u_mesh_tex_size)).xyz;
 			vec3 v3 = texture(u_mesh_tex, mesh_idx_to_img_uv(v + 2, u_mesh_tex_size)).xyz;
+
+			// cast a ray in 3 cardinal directions from the sample point, and test if we intersect this
+			// triangle. if the total number of intersections along a ray is even, we can consider the sample
+			// point inside the mesh. we test 3 directions and take the majority result because it is
+			// possible for an intersection test to return a false negative depending on the geometry of
+			// the mesh.
+			intersections[0] += intersect_tri(uv, vec3(0.0, 1.0, 0.0), v1, v2, v3);
+			intersections[1] += intersect_tri(uv, vec3(1.0, 0.0, 0.0), v1, v2, v3);
+			intersections[2] += intersect_tri(uv, vec3(0.0, 0.0, 1.0), v1, v2, v3);
 			
 			float dist = ud_triangle(uv, v1, v2, v3);
 			if (dist < closest_dist)
@@ -97,21 +140,37 @@ void fragment()
 			}
 		}
 		float dist = sqrt(closest_dist);
-		vec3 crossp = cross(closest_tri[1] - closest_tri[0], closest_tri[2] - closest_tri[0]);
-		float dotp = dot(normalize(crossp), normalize(closest_tri[0] - uv));
-		
 		dist /= u_sdf_dist_mod;
+		dist = clamp(dist, 0.0, 1.0);
 		
+		// determine if we're inside or outside the mesh based on the intersection test results.
+		int odd_intersections = 0;
+		for (int i = 0; i < 3; i++)
+			odd_intersections += intersections[i] % 2;
+		bool outside = odd_intersections < 2;
+		dist = dist * (outside ? 1.0 : -1.0);
+		
+		// on the first draw we have no previous dist to compare with so just dump our new dist.
 		if (u_draw_idx == 0)
-			COLOR = vec4(dist, 0.0, 0.0, 1.0);
+		{
+			COLOR = vec4(dist * 0.5 + 0.5, 0.0, 0.0, 1.0);
+		}
 		else
-			COLOR = vec4(min(dist, current.r), 0.0, 0.0, 1.0);
+		{
+			float prev_dist = current.r * 2.0 - 1.0;
+			float final = min(prev_dist, dist) * 0.5 + 0.5;
+			COLOR = vec4(final, step(final, 0.5), 0.0, 1.0);
+		}
 	}
 	else
 	{
 		if (u_draw_idx == 0)
+		{
 			COLOR = vec4(1.0, 0.0, 0.0, 1.0);
-		else:
+		}
+		else
+		{
 			COLOR = current;
+		}
 	}
 }
