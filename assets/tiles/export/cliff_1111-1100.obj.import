@@ -1,0 +1,19 @@
+[remap]
+
+importer="wavefront_obj"
+type="Mesh"
+path="res://.import/cliff_1111-1100.obj-0875fd8207c3d20133749d3050a093bf.mesh"
+
+[deps]
+
+files=[ "res://.import/cliff_1111-1100.obj-0875fd8207c3d20133749d3050a093bf.mesh" ]
+
+source_file="res://assets/tiles/export/cliff_1111-1100.obj"
+dest_files=[ "res://.import/cliff_1111-1100.obj-0875fd8207c3d20133749d3050a093bf.mesh", "res://.import/cliff_1111-1100.obj-0875fd8207c3d20133749d3050a093bf.mesh" ]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3( 1, 1, 1 )
+offset_mesh=Vector3( 0, 0, 0 )
+optimize_mesh=true

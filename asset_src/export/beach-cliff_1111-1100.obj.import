@@ -1,0 +1,19 @@
+[remap]
+
+importer="wavefront_obj"
+type="Mesh"
+path="res://.import/beach-cliff_1111-1100.obj-9e4008cfb1d99c97ff9ea38586eb7fb9.mesh"
+
+[deps]
+
+files=[ "res://.import/beach-cliff_1111-1100.obj-9e4008cfb1d99c97ff9ea38586eb7fb9.mesh" ]
+
+source_file="res://asset_src/export/beach-cliff_1111-1100.obj"
+dest_files=[ "res://.import/beach-cliff_1111-1100.obj-9e4008cfb1d99c97ff9ea38586eb7fb9.mesh", "res://.import/beach-cliff_1111-1100.obj-9e4008cfb1d99c97ff9ea38586eb7fb9.mesh" ]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3( 1, 1, 1 )
+offset_mesh=Vector3( 0, 0, 0 )
+optimize_mesh=true

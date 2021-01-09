@@ -1,6 +1,6 @@
 extends Node
 
-export var _sdf_max_width : int = 8192
+export var _sdf_max_width : int = 4096
 export var _sdf_resolution : int = 256
 export var _sdf_volume_radius := 15.0
 export var _sdf_dist_mod := 2.0

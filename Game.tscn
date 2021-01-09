@@ -6,16 +6,16 @@
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
 [ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
 [ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=6]
-[ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
 [ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=10]
 [ext_resource path="res://assets/1px.png" type="Texture" id=11]
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
+[ext_resource path="res://assets/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
 
-[sub_resource type="ShaderMaterial" id=15]
-shader = ExtResource( 7 )
+[sub_resource type="SpatialMaterial" id=15]
+albedo_texture = ExtResource( 13 )
 
 [sub_resource type="Texture3D" id=2]
 data = {
@@ -119,7 +119,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 27.9167 )
+transform = Transform( 1, 0, 0, 0, 0.961122, -0.276124, 0, 0.276124, 0.961122, 0, -6.58795, 28.1513 )
 
 [node name="Area" type="Area" parent="."]
 
@@ -157,7 +157,6 @@ __meta__ = {
 }
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
-visible = false
 mesh = SubResource( 13 )
 material/0 = null
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]

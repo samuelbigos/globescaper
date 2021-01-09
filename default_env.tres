@@ -3,6 +3,7 @@
 [sub_resource type="ProceduralSky" id=1]
 
 [resource]
-background_mode = 3
+background_mode = 2
 background_sky = SubResource( 1 )
 background_color = Color( 0.0431373, 0.0431373, 0.0431373, 1 )
+ambient_light_color = Color( 0.333333, 0.333333, 0.333333, 1 )

@@ -67,7 +67,7 @@ var _wfc_step = 0.1
 var _wfc_finished = false
 var _surface_generate = false
 var _cell_add_queue = []
-var _debug_display_mode = 1
+var _debug_display_mode = 0
 
 # visualisations
 var _possibility_cubes = []
@@ -387,7 +387,7 @@ func _process(delta : float) -> void:
 	_generate_surface_from_wfc()
 	
 	if Input.is_action_just_released("spacebar"):
-		_debug_display_mode = (_debug_display_mode + 1) % 2
+		_debug_display_mode = (_debug_display_mode + 1) % 3
 		match _debug_display_mode:
 			0:
 				$SDFGen/SDFVolume.visible = true
