@@ -48,7 +48,7 @@ vec3 sample_sdf_3d(vec3 uv)
 	uv /= (u_sdf_volume_radius * 2.0);
 	uv += 0.5;
 	
-	vec3 tex_size = vec3(u_sdf_volume_radius) / float(u_sdf_resolution);
+	vec3 tex_size = vec3(float(u_sdf_resolution)) * 1.0;
 	vec3 inv_tex_size = 1.0 / tex_size;
 	
 	vec3 x0y0z0 = sample_sdf(uv + vec3(0.0, 0.0, 0.0) * tex_size);

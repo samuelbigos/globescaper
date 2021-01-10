@@ -14,7 +14,6 @@
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
 [ext_resource path="res://assets/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
-[ext_resource path="res://assets/sun.obj" type="ArrayMesh" id=15]
 
 [sub_resource type="ShaderMaterial" id=15]
 shader = ExtResource( 7 )
@@ -24,6 +23,7 @@ shader_param/u_sdf_volume_radius = null
 shader_param/u_sdf_dist_mod = null
 shader_param/u_rows = null
 shader_param/u_cols = null
+shader_param/u_sdf_quintic_filter = null
 shader_param/u_texture = ExtResource( 13 )
 
 [sub_resource type="Texture3D" id=2]
@@ -41,6 +41,13 @@ shader = ExtResource( 3 )
 shader_param/u_deep_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_shallow_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_camera_pos = Vector3( 0, 0, 0 )
+shader_param/u_sun_pos = null
+shader_param/u_sdf_resolution = null
+shader_param/u_sdf_volume_radius = null
+shader_param/u_sdf_dist_mod = null
+shader_param/u_rows = null
+shader_param/u_cols = null
+shader_param/u_sdf_quintic_filter = null
 shader_param/u_3d_noise = SubResource( 2 )
 
 [sub_resource type="ShaderMaterial" id=4]
@@ -89,9 +96,13 @@ shader_param/u_cam_pos = null
 [sub_resource type="CubeMesh" id=13]
 material = SubResource( 14 )
 
-[sub_resource type="SpatialMaterial" id=16]
+[sub_resource type="SphereMesh" id=16]
+radius = 5.0
+height = 10.0
+
+[sub_resource type="SpatialMaterial" id=17]
 flags_unshaded = true
-albedo_color = Color( 1, 0.980392, 0, 1 )
+albedo_color = Color( 1, 0.843137, 0, 1 )
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
@@ -101,20 +112,18 @@ poss_cube_material = SubResource( 4 )
 voxel_inside_material = SubResource( 5 )
 voxel_outside_material = SubResource( 6 )
 radius = 10.0
-iterations = 1
 relax_iterations = 50
 water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
 cell_height = 1.0
 grid_height = 3
-water_height = 0.85
+water_height = 0.9
 
 [node name="Globe" type="MeshInstance" parent="."]
 transform = Transform( 1, 0.000106591, -0.000468148, -0.000107254, 0.999999, -0.0014405, 0.000467997, 0.00144055, 0.999999, 0, 0, 0 )
 visible = false
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
-visible = false
 
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
 visible = false
@@ -130,7 +139,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 0.779753, -0.626087, 0, 0.626087, 0.779753, 0, -13.1242, 17.1741 )
+transform = Transform( 1, 0, 0, 0, 0.993052, -0.117676, 0, 0.117676, 0.993052, 0, -2.48124, 24.3437 )
 
 [node name="Area" type="Area" parent="."]
 
@@ -178,9 +187,37 @@ material/0 = null
 transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 94.7301, 0, 3.8147e-06 )
-mesh = ExtResource( 15 )
-material/0 = SubResource( 16 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4901, 19.7454, 0 )
+mesh = SubResource( 16 )
+material/0 = SubResource( 17 )
+
+[node name="VSplitContainer" type="VSplitContainer" parent="."]
+visible = false
+margin_right = 40.0
+margin_bottom = 40.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VSplitContainer"]
+margin_right = 123.0
+margin_bottom = 40.0
+
+[node name="QuinticFilteringLabel" type="Label" parent="VSplitContainer/HBoxContainer"]
+margin_top = 13.0
+margin_right = 111.0
+margin_bottom = 27.0
+text = "Quintic Filtering: "
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="QuinticFilteringValue" type="Label" parent="VSplitContainer/HBoxContainer"]
+margin_left = 115.0
+margin_top = 13.0
+margin_right = 123.0
+margin_bottom = 27.0
+text = "0"
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]
 [connection signal="mouse_entered" from="Area" to="." method="_on_Area_mouse_entered"]
 [connection signal="mouse_exited" from="Area" to="." method="_on_Area_mouse_exited"]

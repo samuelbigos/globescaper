@@ -38,10 +38,11 @@ config/icon="res://icon.png"
 
 [display]
 
-window/size/width=960
-window/size/height=640
-window/size/test_width=960
-window/size/test_height=640
+window/size/width=1920
+window/size/height=1080
+window/size/fullscreen=true
+window/size/test_width=1920
+window/size/test_height=1080
 window/stretch/mode="viewport"
 
 [importer_defaults]
@@ -84,7 +85,13 @@ spacebar={
 "events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":32,"unicode":0,"echo":false,"script":null)
  ]
 }
+i={
+"deadzone": 0.5,
+"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":73,"unicode":0,"echo":false,"script":null)
+ ]
+}
 
 [rendering]
 
 quality/subsurface_scattering/quality=2
+environment/default_clear_color=Color( 0.133333, 0.133333, 0.133333, 1 )

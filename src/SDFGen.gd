@@ -6,6 +6,7 @@ export var _sdf_volume_radius := 15.0
 export var _sdf_dist_mod := 1.0
 export var _mesh_image_size = Vector2(1024, 1024)
 export var _mesh_data_verts := 0
+export var _sdf_quintic_filter := false
 
 var _sdf_texture : Texture
 var _sdf_volume_mat : Material
@@ -46,7 +47,11 @@ func _ready():
 func _process(delta) -> void:
 	_sdf_volume_mat.set_shader_param("u_cam_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf_volume_mat.set_shader_param("u_sdf", get_texture())
-	$SDFPreview.set_texture(get_texture())	
+	$SDFPreview.set_texture(get_texture())
+	
+	if Input.is_action_just_pressed("i"):
+		_sdf_quintic_filter = !_sdf_quintic_filter
+	
 	
 func set_mesh_texture(var verts) ->void:
 	if verts.size() == 0:
@@ -108,3 +113,4 @@ func set_sdf_params_on_mat(var material : Material) -> void:
 	material.set_shader_param("u_sdf_volume_radius", _sdf_volume_radius)
 	material.set_shader_param("u_sdf_dist_mod", _sdf_dist_mod)
 	material.set_shader_param("u_sdf_resolution", _sdf_resolution)
+	material.set_shader_param("u_sdf_quintic_filter", _sdf_quintic_filter)

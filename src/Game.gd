@@ -103,7 +103,8 @@ func _ready() -> void:
 	_wfc_added = []
 	for c in _grid_cells:
 		_wfc_added.append(false)
-
+		
+	_update_gui();
 
 func _load_prototype_data():
 	var file = File.new()
@@ -341,15 +342,20 @@ func _generate() -> void:
 			add_child(cube)
 				
 	_generated = true
-		
+	
+func _update_gui():
+	$VSplitContainer/HBoxContainer/QuinticFilteringValue.text = "%d" % [int(_sdf._sdf_quintic_filter)]
 
 func _process(delta : float) -> void:
 	
 	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().get_camera_transform().origin)
-	_sdf.set_sdf_params_on_mat(land_material)
 	
-	$SunGimbal.rotation.y += delta * PI * 0.1
+	_sdf.set_sdf_params_on_mat(land_material)
+	_sdf.set_sdf_params_on_mat(water_material)
+	
+	$SunGimbal.rotation.y += delta * PI * 0.2
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
+	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
 	var closest_vert = -1
 	var closest_dist = 9999.0
@@ -373,7 +379,7 @@ func _process(delta : float) -> void:
 	_wfc_step -= delta
 	if _wfc_step < 0.0:
 	#if Input.is_action_just_released("mouse_left"):
-		_wfc_step = 0.0
+		_wfc_step = 0.01
 		if _wfc_data.size() > 0:
 			for i in range(_grid_cells.size()):
 				if wfc_visualisation:
@@ -402,6 +408,8 @@ func _process(delta : float) -> void:
 			2:
 				$SDFGen/SDFVolume.visible = true
 				$SDFGen/SDFPreview.visible = true
+	
+	_update_gui()
 		
 func _generate_surface_from_wfc():
 	if _cell_add_queue.size() > 0:

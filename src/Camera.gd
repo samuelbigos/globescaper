@@ -21,8 +21,8 @@ func _process(delta : float) -> void:
 		_velocity = _mouse_position - get_viewport().get_mouse_position()
 		_mouse_position = get_viewport().get_mouse_position()
 		
-	#_velocity.x = 20.0 * delta
-	#_v_gimbal.rotation.x = -0.6
+	_velocity.x = -20.0 * delta
+	_v_gimbal.rotation.x = -0.6
 	
 	if _follow_target:
 		rotation.y = lerp(rotation.y, atan2(_target.x, _target.z), delta * 1.0)		
