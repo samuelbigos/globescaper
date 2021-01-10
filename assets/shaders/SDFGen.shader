@@ -54,7 +54,7 @@ vec3 sdf_uv_to_world_pos(vec2 uv)
 	float col = floor(uv.x * float(u_cols));
 	float row = floor((1.0 - uv.y) * float(u_rows));
 	pos.z = (row * float(u_cols) + col) / float(u_sdf_resolution);
-	pos -= 0.499;
+	pos -= 0.5;
 	pos *= 2.0 * u_sdf_volume_radius;
 	return pos;
 }

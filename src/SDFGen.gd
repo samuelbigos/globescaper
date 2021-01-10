@@ -1,9 +1,9 @@
 extends Node
 
 export var _sdf_max_width : int = 4096
-export var _sdf_resolution : int = 256
+export var _sdf_resolution : int = 384
 export var _sdf_volume_radius := 15.0
-export var _sdf_dist_mod := 2.0
+export var _sdf_dist_mod := 1.0
 export var _mesh_image_size = Vector2(1024, 1024)
 export var _mesh_data_verts := 0
 
@@ -43,12 +43,12 @@ func _ready():
 	_sdf_volume_mat.set_shader_param("u_sdf_resolution", _sdf_resolution)
 	$SDFVolume.mesh.size = Vector3(_sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0)
 	
-func _process(delta):
+func _process(delta) -> void:
 	_sdf_volume_mat.set_shader_param("u_cam_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf_volume_mat.set_shader_param("u_sdf", get_texture())
 	$SDFPreview.set_texture(get_texture())	
 	
-func set_mesh_texture(var verts):
+func set_mesh_texture(var verts) ->void:
 	if verts.size() == 0:
 		return
 		
@@ -93,5 +93,18 @@ func set_mesh_texture(var verts):
 	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
 	_draw_idx += 1
 	
-func get_texture():
+func get_texture() -> Texture:
+	_viewport.get_texture().flags = Texture.FLAG_FILTER
 	return _viewport.get_texture()
+
+func set_sdf_params_on_mat(var material : Material) -> void:
+	var per_row = _sdf_max_width / _sdf_resolution
+	var cols = min(_sdf_resolution, per_row)
+	var rows = int(ceil(float(_sdf_resolution) / per_row))
+	
+	material.set_shader_param("u_sdf", get_texture())
+	material.set_shader_param("u_rows", int(rows))
+	material.set_shader_param("u_cols", int(cols))
+	material.set_shader_param("u_sdf_volume_radius", _sdf_volume_radius)
+	material.set_shader_param("u_sdf_dist_mod", _sdf_dist_mod)
+	material.set_shader_param("u_sdf_resolution", _sdf_resolution)

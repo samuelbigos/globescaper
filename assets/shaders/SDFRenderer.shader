@@ -36,7 +36,7 @@ vec3 sample_sdf_1d(vec3 uv)
 	uv.x *= float(-1.0);
 	uv.z *= float(-1.0);	
 	uv /= (u_sdf_volume_radius * 2.0);
-	uv += 0.499;
+	uv += 0.5;
 	
 	return sample_sdf(uv);
 }
@@ -46,19 +46,19 @@ vec3 sample_sdf_3d(vec3 uv)
 	uv.x *= float(-1.0);
 	uv.z *= float(-1.0);
 	uv /= (u_sdf_volume_radius * 2.0);
-	uv += 0.499;
+	uv += 0.5;
 	
 	vec3 tex_size = vec3(u_sdf_volume_radius) / float(u_sdf_resolution);
 	vec3 inv_tex_size = 1.0 / tex_size;
 	
-	vec3 x0y0z0 = sample_sdf(uv + vec3(0.0, 0.0, 0.0));
-	vec3 x0y0z1 = sample_sdf(uv + vec3(0.0, 0.0, 1.0));
-	vec3 x0y1z0 = sample_sdf(uv + vec3(0.0, 1.0, 0.0));
-	vec3 x0y1z1 = sample_sdf(uv + vec3(0.0, 1.0, 1.0));
-	vec3 x1y0z0 = sample_sdf(uv + vec3(1.0, 0.0, 0.0));
-	vec3 x1y0z1 = sample_sdf(uv + vec3(1.0, 0.0, 1.0));
-	vec3 x1y1z0 = sample_sdf(uv + vec3(1.0, 1.0, 0.0));
-	vec3 x1y1z1 = sample_sdf(uv + vec3(1.0, 1.0, 1.0));
+	vec3 x0y0z0 = sample_sdf(uv + vec3(0.0, 0.0, 0.0) * tex_size);
+	vec3 x0y0z1 = sample_sdf(uv + vec3(0.0, 0.0, 1.0) * tex_size);
+	vec3 x0y1z0 = sample_sdf(uv + vec3(0.0, 1.0, 0.0) * tex_size);
+	vec3 x0y1z1 = sample_sdf(uv + vec3(0.0, 1.0, 1.0) * tex_size);
+	vec3 x1y0z0 = sample_sdf(uv + vec3(1.0, 0.0, 0.0) * tex_size);
+	vec3 x1y0z1 = sample_sdf(uv + vec3(1.0, 0.0, 1.0) * tex_size);
+	vec3 x1y1z0 = sample_sdf(uv + vec3(1.0, 1.0, 0.0) * tex_size);
+	vec3 x1y1z1 = sample_sdf(uv + vec3(1.0, 1.0, 1.0) * tex_size);
 
 	vec3 f = fract(uv * tex_size);
 
@@ -78,7 +78,7 @@ bool ray_hit(vec3 pos, out float dist)
 	dist = sample_sdf_1d(pos).r;
 	dist = dist * 2.0 - 1.0;
 	dist *= u_sdf_dist_mod;
-	return dist <= 0.01;
+	return dist <= 0.0;
 }
 
 void fragment()
@@ -95,8 +95,8 @@ void fragment()
 		float dist;
 		if (ray_hit(ray, dist))
 		{
-			//steps = max_steps;
-			//break;
+			steps = max_steps;
+			break;
 		}
 		ray += max(0.025, dist) * ray_dir;
 		float bounds = u_sdf_volume_radius;

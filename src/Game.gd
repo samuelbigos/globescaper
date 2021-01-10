@@ -346,6 +346,10 @@ func _generate() -> void:
 func _process(delta : float) -> void:
 	
 	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().get_camera_transform().origin)
+	_sdf.set_sdf_params_on_mat(land_material)
+	
+	$SunGimbal.rotation.y += delta * PI * 0.1
+	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
 	var closest_vert = -1
 	var closest_dist = 9999.0
@@ -387,7 +391,7 @@ func _process(delta : float) -> void:
 	_generate_surface_from_wfc()
 	
 	if Input.is_action_just_released("spacebar"):
-		_debug_display_mode = (_debug_display_mode + 1) % 3
+		_debug_display_mode = (_debug_display_mode + 1) % 2
 		match _debug_display_mode:
 			0:
 				$SDFGen/SDFVolume.visible = true

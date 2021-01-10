@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=2]
+[gd_scene load_steps=30 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -6,6 +6,7 @@
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
 [ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
 [ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=6]
+[ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
 [ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=10]
@@ -13,9 +14,17 @@
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
 [ext_resource path="res://assets/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
+[ext_resource path="res://assets/sun.obj" type="ArrayMesh" id=15]
 
-[sub_resource type="SpatialMaterial" id=15]
-albedo_texture = ExtResource( 13 )
+[sub_resource type="ShaderMaterial" id=15]
+shader = ExtResource( 7 )
+shader_param/u_sun_pos = null
+shader_param/u_sdf_resolution = null
+shader_param/u_sdf_volume_radius = null
+shader_param/u_sdf_dist_mod = null
+shader_param/u_rows = null
+shader_param/u_cols = null
+shader_param/u_texture = ExtResource( 13 )
 
 [sub_resource type="Texture3D" id=2]
 data = {
@@ -80,6 +89,10 @@ shader_param/u_cam_pos = null
 [sub_resource type="CubeMesh" id=13]
 material = SubResource( 14 )
 
+[sub_resource type="SpatialMaterial" id=16]
+flags_unshaded = true
+albedo_color = Color( 1, 0.980392, 0, 1 )
+
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
 land_material = SubResource( 15 )
@@ -94,9 +107,10 @@ water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
 cell_height = 1.0
 grid_height = 3
-water_height = 0.8
+water_height = 0.85
 
 [node name="Globe" type="MeshInstance" parent="."]
+transform = Transform( 1, 0.000106591, -0.000468148, -0.000107254, 0.999999, -0.0014405, 0.000467997, 0.00144055, 0.999999, 0, 0, 0 )
 visible = false
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
@@ -107,11 +121,8 @@ visible = false
 material_override = SubResource( 7 )
 
 [node name="GlobeLand" type="MeshInstance" parent="."]
+transform = Transform( 0.999998, -0.000705984, 0.00198889, 0.000705835, 1, 7.68196e-05, -0.00198894, -7.54311e-05, 0.999998, 0, 0, 0 )
 mesh = SubResource( 8 )
-
-[node name="DirectionalLight" type="DirectionalLight" parent="."]
-transform = Transform( 0.512717, -0.617689, 0.596307, 0, 0.694545, 0.719449, -0.858558, -0.368874, 0.356105, 0, 6.02351, 0 )
-shadow_bias = 0.01
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
@@ -119,7 +130,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 0.961122, -0.276124, 0, 0.276124, 0.961122, 0, -6.58795, 28.1513 )
+transform = Transform( 1, 0, 0, 0, 0.779753, -0.626087, 0, 0.626087, 0.779753, 0, -13.1242, 17.1741 )
 
 [node name="Area" type="Area" parent="."]
 
@@ -133,7 +144,9 @@ script = ExtResource( 5 )
 script = ExtResource( 10 )
 
 [node name="Viewport" type="Viewport" parent="SDFGen"]
-transparent_bg = true
+hdr = false
+keep_3d_linear = true
+usage = 3
 render_target_v_flip = true
 render_target_clear_mode = 1
 render_target_update_mode = 0
@@ -157,8 +170,17 @@ __meta__ = {
 }
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
+visible = false
 mesh = SubResource( 13 )
 material/0 = null
+
+[node name="SunGimbal" type="Spatial" parent="."]
+transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
+
+[node name="Sun" type="MeshInstance" parent="SunGimbal"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 94.7301, 0, 3.8147e-06 )
+mesh = ExtResource( 15 )
+material/0 = SubResource( 16 )
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]
 [connection signal="mouse_entered" from="Area" to="." method="_on_Area_mouse_entered"]
 [connection signal="mouse_exited" from="Area" to="." method="_on_Area_mouse_exited"]
