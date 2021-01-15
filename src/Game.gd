@@ -16,101 +16,71 @@ class Prototype:
 	var slots = []
 	var slot_b : int
 	var slot_t : int
-	var weight := 1.0
-	
-class Cell:
-	var v_bot = []
-	var v_top = []
-	var layer = 0
-	var neighbors = []
-	var centre : Vector3
-	var quad := -1
-	var index := -1
-	
-	
-const Icosphere = preload("Icosphere.gd")
+	var weight := 1.0	
 
 # exposed
 export var land_material : Material
 export var water_material : Material
-export var poss_cube_material : Material
-export var voxel_inside_material : Material
-export var voxel_outside_material : Material
-export(float, 0.1, 10.0) var radius = 1.0 setget set_radius
-export(int, 0, 7) var iterations = 2 setget set_iterations
-export var relax_iterations : int = 30
-export var relax_iteration_delta : float = 0.05
 export var water_deep_colour : Color
 export var water_shallow_colour : Color
-export var cell_height = 1.0
-export var grid_height = 5
 export var water_height = 0.5
-export var wfc_visualisation = false
-export var voxel_space_visualisation = false
-export var use_gdnative_wfc = true
+export var camera_follow := false
 
 # members
-var _generated := false
-var _icosphere = null
-var _noise = null
-var _ico_mesh = []
-var _ico_wireframe_mesh = []
-var _generated_wireframe := false
-var _icosphere_verts = []
-var _icosphere_polys = []
-var _vert_poly_neighbors = []
 var _prototypes = []
-var _tiles = []
 var _wfc_data = []
 var _wfc_added = []
 var _wfc_step = 0.1
 var _wfc_finished = false
-var _surface_generate = false
 var _cell_add_queue = []
 var _debug_display_mode = 0
 var _prototype_mesh_arrays = {}
 
-# visualisations
-var _possibility_cubes = []
-var _voxel_spheres = []
-
-# grid
-var _grid_cells = []
-var _grid_voxels = []
-var _grid_verts = []
-
-# input
-var _mouse_hover := false
-var _mouse_pos_on_globe := Vector3()
-
 onready var _camera = get_node("HGimbal")
-onready var _globe = get_node("Globe")
 onready var _globe_wireframe = get_node("GlobeWireframe")
 onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
 onready var _globe_land : MeshInstance = get_node("GlobeLand")
 onready var _wfc = get_node("WaveFunctionCollapse")
 onready var _sdf = get_node("SDFGen")
 onready var _wfc_gd = get_node("WFC")
+onready var _voxel_grid = get_node("VoxelGrid")
+onready var _icosphere = get_node("Icosphere")
 
 onready var _gdcell_script = load("res://bin/gdcell.gdns")
 onready var _gdprototype_script = load("res://bin/gdprototype.gdns")
 
-func _ready() -> void:
-	_noise = OpenSimplexNoise.new()
-	_icosphere = Icosphere.new()
-	_icosphere._noise = _noise
-	_generate()
-	
+func _ready() -> void:	
+	_icosphere.generate()
+	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys())
 	_prototypes = _load_prototype_data()
-		
-	_wfc.init(0, _grid_cells, _prototypes, grid_height)
+	
+	var ocean_mesh = ArrayMesh.new()
+	var ocean_mesh_array = _icosphere.get_array_mesh()
+	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+	
+	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
+	ocean_mesh.surface_set_material(0, water_material)
+	water_material.set_shader_param("u_deep_colour", water_deep_colour)
+	water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
+	_globe_ocean.set_mesh(ocean_mesh)
+	
+	var globe_wireframe_mesh = ArrayMesh.new()
+	var globe_wireframe_array = _icosphere.get_array_mesh(true)
+	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
+		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
+	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+	
+	var grid_cells = _voxel_grid.get_cells()
+	_wfc.init(0, grid_cells, _prototypes, _voxel_grid.grid_height)
 	_wfc_added = []
-	for c in _grid_cells:
+	for c in grid_cells:
 		_wfc_added.append(false)
 		
 	# wfc gd
 	var gd_cells = []
-	for cell in _grid_cells:
+	for cell in grid_cells:
 		var gd_cell = _gdcell_script.new()
 		gd_cell.top = cell.v_top
 		gd_cell.bot = cell.v_bot
@@ -133,7 +103,7 @@ func _ready() -> void:
 		gd_prot.rot = prot.rot
 		gd_prototypes.append(gd_prot)
 		
-	_wfc_gd.setup_wfc(randi(), gd_cells, gd_prototypes, grid_height)
+	_wfc_gd.setup_wfc(randi(), gd_cells, gd_prototypes, _voxel_grid.grid_height)
 		
 	_update_gui();
 
@@ -206,189 +176,11 @@ func _load_prototype_data():
 			
 		for mesh_name in prototype.mesh_names:
 			if not _prototype_mesh_arrays.has(mesh_name):
-				_prototype_mesh_arrays[mesh_name] = load("res://assets/tiles/" + mesh_name + ".obj").surface_get_arrays(0)
+				var mesh : Mesh = load("res://assets/tiles/" + mesh_name + ".obj")
+				if mesh.get_surface_count() > 0:
+					_prototype_mesh_arrays[mesh_name] = mesh.surface_get_arrays(0)
 			
 	return new_prototypes
-
-
-func _generate() -> void:	
-	_icosphere_verts = []
-	_icosphere_polys = _icosphere.generate_icosphere(_icosphere_verts, iterations)
-	var colours = {}
-	
-	# relaxation
-	for _iter in range(0, relax_iterations):
-		var forces = []
-		for _i in range(0, _icosphere_verts.size()):
-			forces.append(Vector3())
-
-		for poly in _icosphere_polys:
-			var force = Vector3()
-			
-			# get centroid
-			var center = Vector3()
-			for i in range(0, 4):
-				center += _icosphere_verts[poly.v[i]]
-			center /= 4.0
-			
-			# create the rotation matrix to rotate our force vector in 90 degree steps around the centroid normal
-			var rot_matrix = Transform.IDENTITY.rotated(center.normalized(), PI * 0.5)
-			
-			# collect forces
-			for i in range(0, 4):
-				force += _icosphere_verts[poly.v[i]] - center
-				force = rot_matrix.xform(force)
-			force /= 4.0
-			
-			# store forces
-			for i in range(0, 4):
-				forces[poly.v[i]] += center + force - _icosphere_verts[poly.v[i]]
-				force = rot_matrix.xform(force)
-				
-		# apply all accumulated forces on every vert
-		for i in range(0, _icosphere_verts.size()):
-			_icosphere_verts[i] = (_icosphere_verts[i] + forces[i] * relax_iteration_delta).normalized() * 1.0
-	
-	var globe_mesh = ArrayMesh.new()
-	var globe_mesh_array = _icosphere.get_icosphere_mesh(_icosphere_polys, _icosphere_verts, colours)
-	globe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, globe_mesh_array)
-	_globe.set_mesh(globe_mesh)
-	
-	var ocean_mesh = ArrayMesh.new()
-	var ocean_mesh_array = globe_mesh_array.duplicate()
-	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
-		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (radius + water_height)
-		
-	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
-	ocean_mesh.surface_set_material(0, water_material)
-	water_material.set_shader_param("u_deep_colour", water_deep_colour)
-	water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
-	_globe_ocean.set_mesh(ocean_mesh)
-	
-	var globe_wireframe_mesh = ArrayMesh.new()
-	var globe_wireframe_array = _icosphere.get_icosphere_wireframe(_icosphere_polys, _icosphere_verts)
-	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (radius + water_height * 1.01)
-	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-	_globe_wireframe.set_mesh(globe_wireframe_mesh)
-	
-	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
-	# with a 2D array
-	_grid_voxels = []
-	_voxel_spheres = []
-	for v in range(0, _icosphere_verts.size()):
-		_grid_voxels.append([])
-		_voxel_spheres.append([])
-		for _h in range(0, grid_height):
-			_grid_voxels[v].append(0) # voxel field starts out zero-initialised and gets filled in as WFC runs
-			if voxel_space_visualisation:
-				var voxel_sphere = MeshInstance.new()
-				var voxel_sphere_mesh = SphereMesh.new()
-				voxel_sphere_mesh.radial_segments = 8
-				voxel_sphere_mesh.rings = 4
-				voxel_sphere.set_mesh(voxel_sphere_mesh)
-				_voxel_spheres[v].append(voxel_sphere)
-				add_child(voxel_sphere)
-				
-				
-	# build a list of vert ids
-	_grid_verts = []
-	var grid_verts_map = []
-	var vert_idx = 0
-	for i in range(0, _icosphere_verts.size()):
-		grid_verts_map.append([])
-		for h in range(0, grid_height + 1):
-			var vert = _icosphere_verts[i]
-			grid_verts_map[i].append(vert_idx)
-			_grid_verts.append(vert + (vert.normalized() * cell_height * float(h)))
-			vert_idx += 1
-
-	# convert from quads on a sphere to cubes in our 3D grid space where the bottom of the lowest
-	# level of the grid is the quad on the surface of the sphere
-	var quad_cube_mapping = []
-	var quad_to_quad_idx = {}
-	for i in range(0, _icosphere_polys.size()):
-		quad_cube_mapping.append([])
-		quad_to_quad_idx[_icosphere_polys[i]] = i
-		for h in range(0, grid_height):
-			var cell = Cell.new()
-			cell.layer = h
-			cell.centre = Vector3(0.0, 0.0, 0.0)
-			for v in range(0, 4):
-				var vert_idx_bot = grid_verts_map[_icosphere_polys[i].v[v]][h]
-				var vert_idx_top = grid_verts_map[_icosphere_polys[i].v[v]][h + 1]
-				cell.v_bot.append(vert_idx_bot)
-				cell.v_top.append(vert_idx_top)
-				cell.centre += _grid_verts[cell.v_bot[v - 1]]
-				cell.centre += _grid_verts[cell.v_top[v - 1]]
-		
-			cell.centre /= 8.0
-			cell.quad = i
-			quad_cube_mapping[i].append(cell)
-			_grid_cells.append(cell)
-			cell.index = _grid_cells.size() - 1
-			
-	# set up cube neighbors
-	for i in range(0, quad_cube_mapping.size()):
-		for h in range(0, quad_cube_mapping[i].size()):
-			var cube = quad_cube_mapping[i][h]
-			# add the 4 neighboring cubes from the same layer
-			for n in range(0, 4):
-				var n_quad_idx = quad_to_quad_idx[_icosphere_polys[i].neighbors[n]]
-				cube.neighbors.append(quad_cube_mapping[n_quad_idx][h])
-			# add the cube above
-			if h < grid_height - 1:
-				cube.neighbors.append(quad_cube_mapping[i][h + 1])
-			else: cube.neighbors.append(null)
-			# add the cube below
-			if h > 0:
-				cube.neighbors.append(quad_cube_mapping[i][h - 1])
-			else: cube.neighbors.append(null)
-					
-	# add possibility cubes
-	if wfc_visualisation:
-		var indices = [0,1,2, 2,3,0,
-					   1,0,4, 4,5,1,
-					   2,1,5, 5,6,2,
-					   3,2,6, 6,7,3,
-					   0,3,7, 7,4,0,
-					   4,7,6, 6,5,4]
-		
-		var st = SurfaceTool.new()
-		for i in range(0, _grid_cells.size()):
-			var cube = MeshInstance.new()
-			st.begin(Mesh.PRIMITIVE_TRIANGLES)
-			
-			for v in _grid_cells[i].v_top:
-				var vert = _grid_verts[v]
-				var n = vert - _grid_cells[i].centre
-				var v_height = radius + (cell_height * (float(_grid_cells[i].layer) + 1.0))
-				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-				vert = vert.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
-				st.add_normal(n.normalized())
-				st.add_vertex(vert)
-				
-			for v in _grid_cells[i].v_bot:
-				var vert = _grid_verts[v]
-				var n = vert - _grid_cells[i].centre
-				var v_height = radius + (cell_height * (float(_grid_cells[i].layer)))
-				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-				vert = vert.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
-				st.add_normal(n.normalized())
-				st.add_vertex(vert)
-				
-			for idx in indices:
-				st.add_index(idx)
-			
-			cube.set_mesh(st.commit())
-			cube.set_surface_material(0, poss_cube_material)
-			cube.cast_shadow = false
-			_possibility_cubes.append(cube)
-			var height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-			cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
-			add_child(cube)
-				
-	_generated = true
 	
 func _update_gui():
 	$VSplitContainer/HBoxContainer/QuinticFilteringValue.text = "%d" % [int(_sdf._sdf_quintic_filter)]
@@ -396,33 +188,20 @@ func _update_gui():
 func _process(delta : float) -> void:
 	
 	land_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
-	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
-	
+	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)	
 	_sdf.set_sdf_params_on_mat(land_material)
-	_sdf.set_sdf_params_on_mat(water_material)
-	
+	_sdf.set_sdf_params_on_mat(water_material)	
 	$SunGimbal.rotation.y += delta * PI * 0.01
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
-	
-	var closest_vert = -1
-	var closest_dist = 9999.0
-	for i in range(_icosphere_verts.size()):
-		var dist_sq = _icosphere_verts[i].distance_to(_mouse_pos_on_globe)
-		if dist_sq < closest_dist:
-			closest_vert = i
-			closest_dist = dist_sq
 			
-	if use_gdnative_wfc:
-		if not _wfc_finished:
-			var last_wfc = _wfc_gd.step()
-			if last_wfc == -1:
-				_wfc_finished = true
-			_wfc_data = _wfc_gd.get_wave()
-		
-		_process_wfc_gdnative(delta)
-	else:
-		_process_wfc_gdscript(delta)
+	if not _wfc_finished:
+		var last_wfc = _wfc_gd.step()
+		if last_wfc == -1:
+			_wfc_finished = true
+		_wfc_data = _wfc_gd.get_wave()
+	
+	_process_wfc_gdnative(delta)
 		
 	# pump the mesh/sdf builder
 	_generate_surface_from_wfc()
@@ -447,38 +226,16 @@ func _generate_surface_from_wfc():
 		var i = _cell_add_queue.pop_front()
 			
 		var matched_prot
-		if use_gdnative_wfc:
-			matched_prot = _prototypes[_wfc_data[i]]
-		else:
-			var tile_possibilities = _wfc_data[i]
-			matched_prot = _prototypes[tile_possibilities[0]]
+		matched_prot = _prototypes[_wfc_data[i]]
 			
-		_update_voxel_space(i, matched_prot)
+		#_update_voxel_space(i, matched_prot)
 		
 		var mesh = _globe_land.get_mesh()
-		_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
+		var grid_cells = _voxel_grid.get_cells()
+		_add_mesh_for_prototype_on_quad(matched_prot, grid_cells[i], mesh)
 		
-		#_camera.set_orientation(_grid_cells[i].centre)
-		
-		if wfc_visualisation:
-			_possibility_cubes[i].queue_free()
-		
-#func _generate_surface_from_wfc():
-#	if _cell_add_queue.size() > 0:
-#		var i = _cell_add_queue.pop_front()
-#
-#		# find a prototype that matches
-#		var tile_possibilities = _wfc_data[i]
-#		if tile_possibilities.size() == 1:
-#
-#			var matched_prot = _prototypes[tile_possibilities[0]]
-#			_update_voxel_space(i, matched_prot)
-#
-#			var mesh = _globe_land.get_mesh()
-#			_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
-#
-#			if wfc_visualisation:
-#				_possibility_cubes[i].queue_free()
+		if camera_follow:
+			_camera.set_orientation(grid_cells[i].centre)
 		
 func _process_wfc_gdnative(delta) -> void:
 	# add new wfc tiles to a queue for meshing
@@ -486,82 +243,30 @@ func _process_wfc_gdnative(delta) -> void:
 	if _wfc_step <= 0.0:
 		_wfc_step = 0.0
 		if _wfc_data.size() > 0:
-			for i in range(_grid_cells.size()):
+			var grid_cells = _voxel_grid.get_cells()
+			for i in range(grid_cells.size()):
 				if _wfc_data[i] == -1:
 					continue
-				if wfc_visualisation:
-					_update_possibility_cube(i, _wfc_data[i].size())
+				#if wfc_visualisation:
+				#	_update_possibility_cube(i, _wfc_data[i].size())
 				if _wfc_added[i]:
 					continue
 					
 				_cell_add_queue.append(i)
 				_wfc_added[i] = true
 				break
-						
-func _process_wfc_gdscript(delta) -> void:
-	if not _wfc_finished:
-		_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
-		_wfc_data = _wfc._wave
 
-	# add new wfc tiles to a queue for meshing
-	_wfc_step -= delta
-	if _wfc_step < 0.0:
-	#if Input.is_action_just_released("mouse_left"):
-		_wfc_step = 0.01
-		if _wfc_data.size() > 0:
-			for i in range(_grid_cells.size()):
-				if wfc_visualisation:
-					_update_possibility_cube(i, _wfc_data[i].size())
-				if _wfc_added[i]:
-					continue
-				if _wfc_data[i].size() > 1:
-					continue
-
-				_cell_add_queue.append(i)
-				_wfc_added[i] = true
-				break
-
-func _update_voxel_space(i, prototype : Prototype):
-	var quad = _icosphere_polys[_grid_cells[i].quad] as Icosphere.Quad
-	for v in range(0, quad.v.size()):
-		var inside = prototype.corners_bot[v] != 0
-		_grid_voxels[quad.v[v]][_grid_cells[i].layer] = inside
-		
-		if _grid_cells[i].layer < grid_height - 1:
-			inside = prototype.corners_top[v] != 0
-			_grid_voxels[quad.v[v]][_grid_cells[i].layer + 1] = inside
-				
-		if voxel_space_visualisation:
-			var sphere = _voxel_spheres[quad.v[v]][_grid_cells[i].layer] as MeshInstance
-			var pos = _icosphere_verts[quad.v[v]].normalized() * (radius + (cell_height * _grid_cells[i].layer))
-			sphere.transform.origin = pos
-			var size = 0.05
-			sphere.scale = Vector3(size, size, size)
-			if inside:
-				sphere.get_mesh().surface_set_material(0, voxel_inside_material)
-			else:
-				sphere.get_mesh().surface_set_material(0, voxel_outside_material)
-	
-
-func _update_possibility_cube(cell, size):
-	if size == 1 or _possibility_cubes.size() <= cell or _possibility_cubes[cell] == null:
-		return
-	
-	var height = radius + (cell_height) * (float(_grid_cells[cell].layer))
-	var scaled = float(size) / float(_prototypes.size())
-	scaled *= 0.95
-	_possibility_cubes[cell].scale = Vector3(scaled, scaled, scaled)
-
-func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibilities = false, possibility_idx = 0):
+func _add_mesh_for_prototype_on_quad(prototype, cell, array_mesh):
+	var grid_verts = _voxel_grid.get_verts()
 	var corner_verts_pos = []
 	for j in range(0, 4):
-		corner_verts_pos.append(_grid_verts[cell.v_bot[j]])
+		corner_verts_pos.append(grid_verts[cell.v_bot[j]])
 		
 	var sdf_verts = []
 	for i in range(0, prototype.mesh_names.size()):
-		if prototype.mesh_names[i] == "0000-0000":
+		if not _prototype_mesh_arrays.has(prototype.mesh_names[i]):
 			return
-		
+			
 		var tile_arrays = _prototype_mesh_arrays[prototype.mesh_names[i]].duplicate()
 		if tile_arrays.size() == 0:
 			print(prototype.mesh_names[i])
@@ -617,25 +322,5 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer :
 	vert = lerp(new_x1, new_x2, vert_y)
 	
 	# add height
-	var height = radius + (cell_height) * (float(layer) + vert_height)
+	var height = _icosphere.radius + (_voxel_grid.cell_height) * (float(layer) + vert_height)
 	return vert.normalized() * height
-	
-	
-func set_iterations(val : int) -> void: 
-	iterations = val
-	if _generated:
-		_generate()
-
-func set_radius(val : float) -> void: 
-	radius = val
-	if _generated:
-		_generate()
-		
-func _on_Area_mouse_entered():
-	_mouse_hover = true
-	
-func _on_Area_input_event(camera, event, click_position, click_normal, shape_idx):
-	_mouse_pos_on_globe = click_position
-
-func _on_Area_mouse_exited():
-	_mouse_hover = false

@@ -7,12 +7,9 @@ var _current = -1
 var _wave = []
 var _collapsed = []
 var _stack = []
-var _sum_of_weights = []
-var _sum_of_weight_log_weights = []
 var _entropy = []
 var _cell_to_idx = {}
 var _last_added := -1
-var _tile_compatibility
 
 
 func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int):
@@ -63,16 +60,14 @@ func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int
 	
 	
 func step(var i_cells, var i_prototypes) -> bool:
-	var i_steps = 0
 	while _stack.size() > 0:
-		i_steps += 1
 		if not _wfc_propagate(i_cells, i_prototypes):
 			printerr("FAILURE! Propagation failed")
 			return false
-	return _wfc_collapse(i_cells, i_prototypes)
+	return _wfc_collapse(i_prototypes)
 			
 		
-func _wfc_collapse(var i_cells, var i_prototypes) -> bool:
+func _wfc_collapse(var i_prototypes) -> bool:
 	# select a starting cell that has the least entropy
 	_current = _wfc_observe(_wave)
 	

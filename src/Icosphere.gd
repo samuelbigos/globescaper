@@ -2,10 +2,15 @@ extends Node
 class_name Icosphere
 
 
-var _radius := 1.0
-var _noise_influence := 0.0
-var _noise
+export var radius := 10.0
+export var subdivisions := 1
+export var relax_iterations : = 30
+export var relax_iteration_delta := 0.05
+
 var _rng = RandomNumberGenerator.new()
+var _verts = []
+var _polys = []
+
 
 class Tri:
 	var type := "tri"
@@ -32,30 +37,33 @@ class Quad:
 	var type := "quad"
 	var v = []
 	var neighbors = [] # can be quads or tris
-	var children = []
-	
+	var children = []	
 	var tri_1_uid : Vector3
 	var tri_2_uid : Vector3
+	
+	
+func get_verts(): return _verts
+func get_polys(): return _polys
 
-
-func generate_icosphere(verts, iterations : int):
+func generate() -> void:
+	_verts = []
+	_polys = []	
 	var middle_point_index_cache = {}
 	
-	var t = (1.0 + sqrt(5.0)) / 2.0;
-	
 	# create base set of verts from which all tris are made
-	_add_vert(verts, Vector3(-1, t, 0))
-	_add_vert(verts, Vector3(1, t, 0))
-	_add_vert(verts, Vector3(-1, -t, 0))
-	_add_vert(verts, Vector3(1, -t, 0))	
-	_add_vert(verts, Vector3(0, -1, t))
-	_add_vert(verts, Vector3(0, 1, t))
-	_add_vert(verts, Vector3(0, -1, -t))
-	_add_vert(verts, Vector3(0, 1, -t))	
-	_add_vert(verts, Vector3(t, 0, -1))
-	_add_vert(verts, Vector3(t, 0, 1))
-	_add_vert(verts, Vector3(-t, 0, -1))
-	_add_vert(verts, Vector3(-t, 0, 1))
+	var t = (1.0 + sqrt(5.0)) / 2.0;
+	_add_vert(_verts, Vector3(-1, t, 0))
+	_add_vert(_verts, Vector3(1, t, 0))
+	_add_vert(_verts, Vector3(-1, -t, 0))
+	_add_vert(_verts, Vector3(1, -t, 0))	
+	_add_vert(_verts, Vector3(0, -1, t))
+	_add_vert(_verts, Vector3(0, 1, t))
+	_add_vert(_verts, Vector3(0, -1, -t))
+	_add_vert(_verts, Vector3(0, 1, -t))	
+	_add_vert(_verts, Vector3(t, 0, -1))
+	_add_vert(_verts, Vector3(t, 0, 1))
+	_add_vert(_verts, Vector3(-t, 0, -1))
+	_add_vert(_verts, Vector3(-t, 0, 1))
 	
 	# create base tris for the icosphere
 	var tris = []
@@ -99,16 +107,16 @@ func generate_icosphere(verts, iterations : int):
 				tri1.neighbors.append(tri2)
 		if tri1.neighbors.size() != 3:
 			printerr("Error in neighbor calculation #1.")
-			return []
+			return
 	
 	# this is where we subdivide the original icosphere as many times as we want
-	for _i in range(0, iterations):
+	for _i in range(0, subdivisions):
 		var new_tris = []
 		for tri in tris:
 			# split each tri into 4 (into a triforce)
-			var a = _get_middle_2(middle_point_index_cache, verts, tri.v[0], tri.v[1])
-			var b = _get_middle_2(middle_point_index_cache, verts, tri.v[1], tri.v[2])
-			var c = _get_middle_2(middle_point_index_cache, verts, tri.v[2], tri.v[0])
+			var a = _get_middle_2(middle_point_index_cache, _verts, tri.v[0], tri.v[1])
+			var b = _get_middle_2(middle_point_index_cache, _verts, tri.v[1], tri.v[2])
+			var c = _get_middle_2(middle_point_index_cache, _verts, tri.v[2], tri.v[0])
 			
 			var new_tri_mid = _add_triangle(a, b, c)
 			var new_tri = []
@@ -143,7 +151,7 @@ func generate_icosphere(verts, iterations : int):
 							
 				if t1.neighbors.size() > 3:
 					printerr("Tri has too many neighbors.")
-					return []
+					return
 					
 			# add our new tris as children
 			tri.children = [ new_tri[0], new_tri[1], new_tri[2], new_tri_mid ]
@@ -159,10 +167,9 @@ func generate_icosphere(verts, iterations : int):
 	for tri in tris:
 		if tri.neighbors.size() != 3:
 			printerr("Error in neighbor calculation #2.")
-			return []
+			return
 	
 	# we're now going to remove edges randomly so we get a grid of quads and tris
-	var polys = []
 	var used_edges = []
 	
 	for i in range(0, tris.size()):
@@ -170,7 +177,7 @@ func generate_icosphere(verts, iterations : int):
 		var tri = tris[i]
 		
 		var cont = false
-		for poly in polys:
+		for poly in _polys:
 			if poly.type == "quad":
 				if poly.tri_1_uid == tri.uid() or poly.tri_2_uid == tri.uid():
 					cont = true
@@ -188,7 +195,7 @@ func generate_icosphere(verts, iterations : int):
 			edges.append(Vector2(tri.v[2], tri.v[0]))
 		
 		if edges.size() == 0:
-			polys.append(tri)
+			_polys.append(tri)
 			continue
 			
 		var rand_edge_idx = _rng.randi_range(0, edges.size() - 1)
@@ -248,24 +255,24 @@ func generate_icosphere(verts, iterations : int):
 			n.neighbors.erase(opposite)
 			n.neighbors.append(quad)
 		
-		polys.append(quad)
+		_polys.append(quad)
 		
 	# check neighbors are set correctly
-	for poly in polys:
+	for poly in _polys:
 		if poly.v.size() != poly.neighbors.size():
 			printerr("Error in neighbor calculation #3.")
-			return []
+			return
 		
 	# next, split each quad into 4, and each tri into 3 (to make quads)
 	var new_polys = []
-	for poly in polys:
+	for poly in _polys:
 		if poly.type == "quad":
 			var parent_quad := poly as Quad
-			var a = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[0], parent_quad.v[1])
-			var b = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[1], parent_quad.v[2])
-			var c = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[2], parent_quad.v[3])
-			var d = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[3], parent_quad.v[0])
-			var m = _get_middle_4(verts, parent_quad.v[0], parent_quad.v[1], parent_quad.v[2], parent_quad.v[3])
+			var a = _get_middle_2(middle_point_index_cache, _verts, parent_quad.v[0], parent_quad.v[1])
+			var b = _get_middle_2(middle_point_index_cache, _verts, parent_quad.v[1], parent_quad.v[2])
+			var c = _get_middle_2(middle_point_index_cache, _verts, parent_quad.v[2], parent_quad.v[3])
+			var d = _get_middle_2(middle_point_index_cache, _verts, parent_quad.v[3], parent_quad.v[0])
+			var m = _get_middle_4(_verts, parent_quad.v[0], parent_quad.v[1], parent_quad.v[2], parent_quad.v[3])
 
 			var quads = [ Quad.new(), Quad.new(), Quad.new(), Quad.new() ]
 			quads[0].v = [ parent_quad.v[0], a, m, d ]
@@ -303,16 +310,16 @@ func generate_icosphere(verts, iterations : int):
 							
 				if q1.neighbors.size() > 4:
 					printerr("Quad has too many neighbors.")
-					return []
+					return
 							
 			poly.children = [ quads[0], quads[1], quads[2], quads[3] ]
 		
 		if poly.type == "tri":
 			var parent_tri := poly as Tri
-			var a = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[0], parent_tri.v[1])
-			var b = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[1], parent_tri.v[2])
-			var c = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[2], parent_tri.v[0])
-			var m = _get_middle_3(verts, parent_tri.v[0], parent_tri.v[1], parent_tri.v[2])
+			var a = _get_middle_2(middle_point_index_cache, _verts, parent_tri.v[0], parent_tri.v[1])
+			var b = _get_middle_2(middle_point_index_cache, _verts, parent_tri.v[1], parent_tri.v[2])
+			var c = _get_middle_2(middle_point_index_cache, _verts, parent_tri.v[2], parent_tri.v[0])
+			var m = _get_middle_3(_verts, parent_tri.v[0], parent_tri.v[1], parent_tri.v[2])
 
 			var quads = [ Quad.new(), Quad.new(), Quad.new() ]
 			quads[0].v = [ c, parent_tri.v[0], a, m ]
@@ -346,7 +353,7 @@ func generate_icosphere(verts, iterations : int):
 							
 				if q1.neighbors.size() > 4:
 					printerr("Quad has too many neighbors.")
-					return []
+					return
 							
 			poly.children = [ quads[0], quads[1], quads[2] ]
 			
@@ -354,7 +361,7 @@ func generate_icosphere(verts, iterations : int):
 	for poly in new_polys:
 		if poly.v.size() != poly.neighbors.size():
 			printerr("Error in neighbor calculation #4.")
-			return []
+			return
 			
 	# fix neighbor winding so that the the first neighbor is always the one adjacent to v[0] and v[1] etc.
 	for poly in new_polys:
@@ -365,89 +372,81 @@ func generate_icosphere(verts, iterations : int):
 					new_neighbors.append(poly.neighbors[n])
 					break
 		poly.neighbors = new_neighbors
+	
+	_polys = new_polys
+	
+	_relax(_verts, _polys)
+	
+func _relax(verts, polys) -> void:
+	var iterations = relax_iterations
+	while iterations > 0:
+		iterations -= 1
+		var forces = []
+		for _i in range(0, verts.size()):
+			forces.append(Vector3())
 
-	return new_polys
+		for poly in polys:
+			var force = Vector3()
+			
+			# get centroid
+			var center = Vector3()
+			for i in range(0, 4):
+				center += verts[poly.v[i]]
+			center /= 4.0
+			
+			# create the rotation matrix to rotate our force vector in 90 degree steps around the centroid normal
+			var rot_matrix = Transform.IDENTITY.rotated(center.normalized(), PI * 0.5)
+			
+			# collect forces
+			for i in range(0, 4):
+				force += verts[poly.v[i]] - center
+				force = rot_matrix.xform(force)
+			force /= 4.0
+			
+			# store forces
+			for i in range(0, 4):
+				forces[poly.v[i]] += center + force - verts[poly.v[i]]
+				force = rot_matrix.xform(force)
+				
+		# apply all accumulated forces on every vert
+		for i in range(0, verts.size()):
+			verts[i] = (verts[i] + forces[i] * relax_iteration_delta).normalized() * 1.0
 	
-func get_icosphere_mesh(ico_polys, ico_verts, colours):
+func get_array_mesh(var wireframe = false):
 	var normals = []
-	var colors = []
-	
 	var mesh_verts = []
-	for poly in ico_polys:
-
-		var colour = Color.white
-		if colours.has(poly):
-			colour = colours[poly]
-		
-#		if poly.type == "tri":
-#			var tri : Tri = poly as Tri
-#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[0]]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[1]]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[tri.v[2]]))
-#			normals.append(tri.v[0])
-#			normals.append(tri.v[1])
-#			normals.append(tri.v[2])
-#			colors.append(colour)
-#			colors.append(colour)
-#			colors.append(colour)
-			
+	for poly in _polys:
 		if poly.type == "quad":
-			var quad : Quad = poly as Quad
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[0]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[1]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[3]]))
-			normals.append(ico_verts[quad.v[0]])
-			normals.append(ico_verts[quad.v[1]])
-			normals.append(ico_verts[quad.v[3]])
-			colors.append(colour)
-			colors.append(colour)
-			colors.append(colour)
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[1]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[2]]))
-			mesh_verts.append(_unit_to_planet(ico_verts[quad.v[3]]))
-			normals.append(ico_verts[quad.v[1]])
-			normals.append(ico_verts[quad.v[2]])
-			normals.append(ico_verts[quad.v[3]])
-			colors.append(colour)
-			colors.append(colour)
-			colors.append(colour)
-	
-	var mesh_array = []
-	mesh_array.resize(Mesh.ARRAY_MAX)
-	mesh_array[Mesh.ARRAY_VERTEX] = PoolVector3Array(mesh_verts)
-	mesh_array[Mesh.ARRAY_NORMAL] = PoolVector3Array(normals)
-	mesh_array[Mesh.ARRAY_COLOR] = PoolColorArray(colors)
-	return mesh_array
-	
-func get_icosphere_wireframe(ico_polys, ico_verts):
-	var normals = []
-	var colors = []
-	
-	var mesh_verts = []
-	for poly in ico_polys:
-			
-		if poly.type == "quad":
-			
 			var quad := poly as Quad
-			var edges = []
-			edges.append(Vector2(quad.v[0], quad.v[1]))
-			edges.append(Vector2(quad.v[1], quad.v[2]))
-			edges.append(Vector2(quad.v[2], quad.v[3]))
-			edges.append(Vector2(quad.v[3], quad.v[0]))
-					
-			for edge in edges:
-				mesh_verts.append(_unit_to_planet(ico_verts[edge.x]) * 1.001)
-				mesh_verts.append(_unit_to_planet(ico_verts[edge.y]) * 1.001)
-				normals.append(edge.x)
-				normals.append(edge.y)
-				colors.append(Color.white)
-				colors.append(Color.white)
-						
+			if wireframe:
+				var edges = []
+				edges.append(Vector2(quad.v[0], quad.v[1]))
+				edges.append(Vector2(quad.v[1], quad.v[2]))
+				edges.append(Vector2(quad.v[2], quad.v[3]))
+				edges.append(Vector2(quad.v[3], quad.v[0]))
+				for edge in edges:
+					mesh_verts.append(_unit_to_planet(_verts[edge.x]) * 1.001)
+					mesh_verts.append(_unit_to_planet(_verts[edge.y]) * 1.001)
+					normals.append(edge.x)
+					normals.append(edge.y)					
+			else:
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[0]]))
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[1]]))
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[3]]))
+				normals.append(_verts[quad.v[0]])
+				normals.append(_verts[quad.v[1]])
+				normals.append(_verts[quad.v[3]])
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[1]]))
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[2]]))
+				mesh_verts.append(_unit_to_planet(_verts[quad.v[3]]))
+				normals.append(_verts[quad.v[1]])
+				normals.append(_verts[quad.v[2]])
+				normals.append(_verts[quad.v[3]])
+	
 	var mesh_array = []
 	mesh_array.resize(Mesh.ARRAY_MAX)
 	mesh_array[Mesh.ARRAY_VERTEX] = PoolVector3Array(mesh_verts)
 	mesh_array[Mesh.ARRAY_NORMAL] = PoolVector3Array(normals)
-	mesh_array[Mesh.ARRAY_COLOR] = PoolColorArray(colors)
 	return mesh_array
 	
 func _add_triangle(v1 : int, v2 : int, v3 : int):
@@ -482,6 +481,5 @@ func _add_vert(verts, vert : Vector3) -> void:
 func _get_tri_normal(a : Vector3, b : Vector3, c : Vector3) -> Vector3:
 	return (b - a).cross(c - b).normalized()
 
-# converts a unit vertex on our icosphere to the vertex on our planet, so we can apply deformations.
 func _unit_to_planet(vert : Vector3) -> Vector3:
-	return vert.normalized() * _radius
+	return vert.normalized() * radius

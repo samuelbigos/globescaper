@@ -8,7 +8,6 @@ var _target := Vector3()
 var _did_input = false
 
 onready var _v_gimbal = get_node("VGimbal")
-onready var _camera = get_node("VGimbal/Camera")
 
 
 func _process(delta : float) -> void:

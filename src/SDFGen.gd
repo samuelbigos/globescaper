@@ -5,10 +5,8 @@ export var _sdf_resolution : int = 384
 export var _sdf_volume_radius := 15.0
 export var _sdf_dist_mod := 1.0
 export var _mesh_image_size = Vector2(1024, 1024)
-export var _mesh_data_verts := 0
 export var _sdf_quintic_filter := false
 
-var _sdf_texture : Texture
 var _sdf_volume_mat : Material
 var _viewport : Viewport
 var _viewport_tex : TextureRect
@@ -44,7 +42,7 @@ func _ready():
 	_sdf_volume_mat.set_shader_param("u_sdf_resolution", _sdf_resolution)
 	$SDFVolume.mesh.size = Vector3(_sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0)
 	
-func _process(delta) -> void:
+func _process(_delta) -> void:
 	_sdf_volume_mat.set_shader_param("u_cam_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf_volume_mat.set_shader_param("u_sdf", get_texture())
 	$SDFPreview.set_texture(get_texture())
@@ -69,8 +67,8 @@ func set_mesh_texture(var verts) ->void:
 		col.g = verts[i].y
 		col.b = verts[i].z
 		
-		var x = i % int(_mesh_image_size.x)
-		var y = i / int(_mesh_image_size.y)
+		var x = int(i) % int(_mesh_image_size.x)
+		var y = int(i) / int(_mesh_image_size.y)
 		mesh_data.set_pixel(x, y, col)
 		var v = verts[i]
 		ub = Vector3(max(ub.x, v.x), max(ub.y, v.y), max(ub.z, v.z))
