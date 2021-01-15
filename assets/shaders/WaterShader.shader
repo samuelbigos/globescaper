@@ -1,11 +1,6 @@
 shader_type spatial;
 render_mode unshaded;
 
-varying mat4 CAMERA;
-varying vec3 VERTEX_MODEL;
-varying vec3 v_vertex;
-varying vec3 v_normal;
-
 uniform vec4 u_deep_colour = vec4(1.0);
 uniform vec4 u_shallow_colour = vec4(1.0);
 uniform vec3 u_camera_pos = vec3(0.0);
@@ -20,25 +15,23 @@ uniform int u_rows;
 uniform int u_cols;
 uniform bool u_sdf_quintic_filter;
 
-void vertex()
-{
-	VERTEX_MODEL = VERTEX;
-	v_vertex = VERTEX;
-	v_normal = NORMAL;
+varying vec3 WORLD_PIXEL;
+varying vec3 WORLD_NORMAL;
+
+void vertex() {
+	WORLD_PIXEL = VERTEX;
+	WORLD_NORMAL = normalize(NORMAL);
 }
 
-vec4 _permute_4_s4_n0ise(vec4 x) 
-{
+vec4 _permute_4_s4_n0ise(vec4 x) {
 	return ((x * 34.0) + 1.0) * x - floor(((x * 34.0) + 1.0) * x * (1.0 / 289.0)) * 289.0;
 }
 
-float _permute_s4_n0ise(float x) 
-{
+float _permute_s4_n0ise(float x) {
 	return ((x * 34.0) + 1.0) * x - floor(((x * 34.0) + 1.0) * x * (1.0 / 289.0)) * 289.0;
 }
 
-vec4 _grad4_s4_n0ise(float j, vec4 ip) 
-{
+vec4 _grad4_s4_n0ise(float j, vec4 ip) {
 	vec4 ones = vec4(1.0, 1.0, 1.0, -1.0);
 	vec4 p, s;
 	p.xyz = floor( fract (vec3(j) * ip.xyz) * 7.0) * ip.z - 1.0;
@@ -48,8 +41,7 @@ vec4 _grad4_s4_n0ise(float j, vec4 ip)
 	return p;
 }
 
-vec3 sample_sdf(vec3 world_pos)
-{	
+vec3 sample_sdf(vec3 world_pos) {	
 	ivec2 texture_res_i = textureSize(u_sdf, 0);
 	
 	int z = int(world_pos.z * float(u_sdf_resolution));
@@ -81,8 +73,7 @@ vec3 sample_sdf(vec3 world_pos)
 	}
 }
 
-vec3 sample_sdf_1d(vec3 uv)
-{
+vec3 sample_sdf_1d(vec3 uv) {
 	uv.x *= float(-1.0);
 	uv.z *= float(-1.0);	
 	uv /= (u_sdf_volume_radius * 2.0);
@@ -90,8 +81,7 @@ vec3 sample_sdf_1d(vec3 uv)
 	return sample_sdf(uv);
 }
 
-bool ray_hit(vec3 pos, out float dist)
-{
+bool ray_hit(vec3 pos, out float dist) {
 	// hacky hacks
 	//vec3 SDF_SHADOW_OFFSET_BIAS = vec3(0.0, 0.01, 0.06); // 256
 	vec3 SDF_SHADOW_OFFSET_BIAS = vec3(0.0, 0.0, -0.42); // 384
@@ -105,8 +95,7 @@ bool ray_hit(vec3 pos, out float dist)
 	return dist <= 0.0;
 }
 
-bool outofbounds(vec3 ray)
-{
+bool outofbounds(vec3 ray) {
 	float bounds = u_sdf_volume_radius;
 	if (ray.x > bounds || ray.y > bounds || ray.z > bounds 
 		|| ray.x < -bounds || ray.y < -bounds || ray.z < -bounds)
@@ -116,16 +105,15 @@ bool outofbounds(vec3 ray)
 	return false;
 }
 
-float shadow_calc(vec3 origin, vec3 dir, float k)
-{	
+float shadow_calc(vec3 origin, vec3 dir, float k) {
+	float dist;
+	ray_hit(origin, dist);
 	dir = normalize(dir);
 	float res = 1.0;
-	float ph = 1e20;
-	float t = 0.1;
+	float t = dist + 0.1;
 	vec3 ray = origin + dir * t;
 	for (int i = 0; i < 128; i++)
 	{
-		float dist;
 		if (ray_hit(ray, dist))
 		{
 			return 0.0;
@@ -134,25 +122,20 @@ float shadow_calc(vec3 origin, vec3 dir, float k)
 		{
 			break;
 		}
-		float y = dist * dist / (2.0 * ph);
-		float d = sqrt(dist * dist - y * y);
-		res = min(k * res, dist / max(0.0, t - y));
-		ph = dist;
+		res = min(res, k * dist / t);
 		t += dist;
 		ray = origin + dir * t;
 	}
 	return res;
 }
 
-float ao_calc(vec3 target)
-{
+float ao_calc(vec3 target) {
 	float dist;
 	ray_hit(target, dist);
 	return dist;
 }
 
-float simplex4dN0iseFunc(vec4 v) 
-{
+float simplex_4d_noise(vec4 v) {
 	vec4 C = vec4( 0.138196601125011,
 				0.276393202250021,
 				0.414589803375032,
@@ -211,8 +194,7 @@ float simplex4dN0iseFunc(vec4 v)
 				+ dot(m1*m1, vec2(dot(p3, x3), dot(p4, x4))));
 }
 
-float get_noise_4d(vec4 input, float period, int octaves)
-{
+float get_noise_4d(vec4 input, float period, int octaves) {
 	float lacunarity = 2.0;
 	float persistence = 0.5;
 	
@@ -223,7 +205,7 @@ float get_noise_4d(vec4 input, float period, int octaves)
 
 	float amp = 1.0;
 	float fmax = 1.0;
-	float sum = simplex4dN0iseFunc(input);
+	float sum = simplex_4d_noise(input);
 
 	int i = 0;
 	while (++i < octaves) 
@@ -234,13 +216,34 @@ float get_noise_4d(vec4 input, float period, int octaves)
 		input.w *= lacunarity;
 		amp *= persistence;
 		fmax += amp;
-		sum += simplex4dN0iseFunc(input) * amp;
+		sum += simplex_4d_noise(input) * amp;
 	}
 	return sum / fmax;
 }
 
-void fragment()
-{
+float sdf_render(vec3 ro, vec3 rd) {
+	int max_steps = 128;
+	vec3 ray = ro;
+	int steps = 0;
+	for (int i = 0; i < max_steps; i++)
+	{
+		float dist;
+		if (ray_hit(ray, dist))
+		{
+			steps = max_steps;
+			break;
+		}
+		ray += dist * rd;
+		if (outofbounds(ray))
+			break;
+			
+		steps++;
+	}
+	float diff = float(steps) / float(max_steps);
+	return diff;
+}
+
+void fragment() {
 	// get the water colour by modulating between shallow and deep colour based on depth
 	vec3 water_col = vec3(0.0);
 	float depth_difference = 0.0;
@@ -272,17 +275,17 @@ void fragment()
 	
 	// add waves to the water
 	{
-		float wh_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME) * 0.05), 0.8, 3);
+		float wh_noise = get_noise_4d(vec4(WORLD_PIXEL, (TIME) * 0.05), 0.8, 3);
 		float wh_a = 0.0;
 		float wh_b = 0.05;
 		float wave_high = step(wh_a, wh_noise) * step(wh_noise, wh_b) * 0.1;
 		
-		float wl_noise = get_noise_4d(vec4(VERTEX_MODEL, (TIME + 99.0) * 0.05), 0.8, 3);
+		float wl_noise = get_noise_4d(vec4(WORLD_PIXEL, (TIME + 99.0) * 0.05), 0.8, 3);
 		float wl_a = 0.0;
 		float wl_b = 0.05;
 		float wave_low = 1.0 - step(wl_a, wl_noise) * step(wl_noise, wl_b) * 0.25;
 		
-		float shore_noise = get_noise_4d(vec4(VERTEX_MODEL * vec3(1.0, 0.5, 1.0), (TIME + 999.0) * 0.025), 0.1, 2);
+		float shore_noise = get_noise_4d(vec4(WORLD_PIXEL * vec3(1.0, 0.5, 1.0), (TIME + 999.0) * 0.025), 0.1, 2);
 		shore_noise *= 0.25;
 		float shore_step = ((1.0 - depth_difference) - 0.5) * 0.5;
 		float wave_shore = step(shore_step, shore_noise) * depth_difference;
@@ -292,35 +295,28 @@ void fragment()
 		water_col += wave_shore;
 	}
 	
-	// LIGHTING
-	vec3 dpdx = dFdx(v_vertex);
-	vec3 dpdy = dFdy(v_vertex);	
-	vec3 norm = -normalize(cross(dpdy, dpdx));
-	
-	vec3 ray_origin = v_vertex + norm * 0.1;
-	vec3 ray_dir = normalize(u_sun_pos - v_vertex);
-	//ray_dir = normalize(v_vertex);
-	
-	vec3 oy = normalize(v_vertex - dFdy(v_vertex)) * 0.02;
-	vec3 ox = normalize(v_vertex - dFdx(v_vertex)) * 0.02;
-	
+	// LIGHTING	
 	// calculate shadow
+	vec3 ray_origin = WORLD_PIXEL + WORLD_NORMAL * 0.1;
+	vec3 ray_dir = normalize(u_sun_pos - WORLD_PIXEL);
+	vec3 oy = normalize(WORLD_PIXEL - dFdy(WORLD_PIXEL)) * 0.02;
+	vec3 ox = normalize(WORLD_PIXEL - dFdx(WORLD_PIXEL)) * 0.02;
 	float s = 0.0;
 	for (int x = -1; x < 2; x++)
 		for (int y = -1; y < 2; y++)
 			s += shadow_calc(ray_origin + oy * float(y) + ox * float(x), ray_dir, 1.0);
-	s /= 9.0;
+	s /= 1.0;
 	
 	// ao
 	float ao = 0.0;
-	for (int x = -2; x < 3; x++)
+	for (int x = -1; x < 2; x++)
 	{
-		for (int y = -2; y < 3; y++)
+		for (int y = -1; y < 2; y++)
 		{
-			for (int z = -2; z < 3; z++)
+			for (int z = -1; z < 2; z++)
 			{
 				float dist = 0.1;
-				vec3 target = ray_origin; + normalize(norm) * dist * 20.0;
+				vec3 target = ray_origin; + WORLD_NORMAL * dist * 10.0;
 				target += normalize(vec3(float(x), 0.0, 0.0)) * dist;
 				target += normalize(vec3(0.0, float(y), 0.0)) * dist;
 				target += normalize(vec3(0.0, 0.0, float(z))) * dist;
@@ -328,11 +324,32 @@ void fragment()
 			}
 		}
 	}
-	ao /= 125.0;
-	ao = pow(ao, 5.0) * 10.0;
+	ao /= 27.0;
+	ao = pow(ao, 5.0);
 	
-	vec3 col = water_col.rgb;
+	// reflection
+	vec3 cam_ray = normalize(WORLD_PIXEL - u_camera_pos);
+	vec3 reflection_ray = normalize(reflect(cam_ray, WORLD_NORMAL));
+	float wave_noise_x = get_noise_4d(vec4(WORLD_PIXEL, (TIME) * 0.1), 0.2, 3);
+	float wave_noise_y = get_noise_4d(vec4(WORLD_PIXEL, (TIME) * 0.1), 0.2, 3);
+	vec3 perturb = vec3(wave_noise_x, wave_noise_y, 0.0);
+	reflection_ray = normalize((WORLD_PIXEL + reflection_ray + perturb * 0.25) - WORLD_PIXEL);
+	float r = sdf_render(WORLD_PIXEL, reflection_ray);
+	r *= 0.5;
+	
+	// specular
+	float spec = clamp(dot(normalize(reflection_ray), normalize(u_sun_pos - WORLD_PIXEL)), 0.0, 1.0);
+	spec = pow(spec, 200.0) * 20.0;
+	spec = mix(spec, 0.0, 1.0 - s);
 		
-	ALBEDO = vec4(col * ao * (s + 0.005) * 8.0, 1.0).rgb;
-	ALPHA = 1.0;
+	// combine terms
+	vec3 col = water_col.rgb;
+	float brightness = 1.5; // global sun brightness
+		
+	ALBEDO = col; // start with colour
+	ALBEDO *= brightness;
+	ALBEDO *= ao; // ao term
+	ALBEDO *= clamp(s + 0.1, 0.0, 1.0); // shadow + ambient term
+	ALBEDO *= (1.0 - r); // reflection term
+	ALBEDO *= (1.0 + spec); // specular term
 }

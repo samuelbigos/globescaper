@@ -40,7 +40,6 @@ class Quad:
 
 func generate_icosphere(verts, iterations : int):
 	var middle_point_index_cache = {}
-	var unit_vert_array = []
 	
 	var t = (1.0 + sqrt(5.0)) / 2.0;
 	
@@ -266,7 +265,7 @@ func generate_icosphere(verts, iterations : int):
 			var b = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[1], parent_quad.v[2])
 			var c = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[2], parent_quad.v[3])
 			var d = _get_middle_2(middle_point_index_cache, verts, parent_quad.v[3], parent_quad.v[0])
-			var m = _get_middle_4(middle_point_index_cache, verts, parent_quad.v[0], parent_quad.v[1], parent_quad.v[2], parent_quad.v[3])
+			var m = _get_middle_4(verts, parent_quad.v[0], parent_quad.v[1], parent_quad.v[2], parent_quad.v[3])
 
 			var quads = [ Quad.new(), Quad.new(), Quad.new(), Quad.new() ]
 			quads[0].v = [ parent_quad.v[0], a, m, d ]
@@ -313,7 +312,7 @@ func generate_icosphere(verts, iterations : int):
 			var a = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[0], parent_tri.v[1])
 			var b = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[1], parent_tri.v[2])
 			var c = _get_middle_2(middle_point_index_cache, verts, parent_tri.v[2], parent_tri.v[0])
-			var m = _get_middle_3(middle_point_index_cache, verts, parent_tri.v[0], parent_tri.v[1], parent_tri.v[2])
+			var m = _get_middle_3(verts, parent_tri.v[0], parent_tri.v[1], parent_tri.v[2])
 
 			var quads = [ Quad.new(), Quad.new(), Quad.new() ]
 			quads[0].v = [ c, parent_tri.v[0], a, m ]
@@ -421,30 +420,11 @@ func get_icosphere_mesh(ico_polys, ico_verts, colours):
 	return mesh_array
 	
 func get_icosphere_wireframe(ico_polys, ico_verts):
-	var indices = []
 	var normals = []
 	var colors = []
 	
 	var mesh_verts = []
 	for poly in ico_polys:
-		
-#		if poly.type == "tri":
-#
-#			var tri := poly as Tri
-#			var v0 = tri.v[0]
-#			var v1 = tri.v[1]
-#			var v2 = tri.v[2]
-#
-#			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[v1]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[v2]))
-#			mesh_verts.append(_unit_to_planet(ico_verts[v0]))
-#
-#			for i in range(0, 6):
-#				normals.append(0)
-#				colors.append(Color.white)
 			
 		if poly.type == "quad":
 			
@@ -485,12 +465,12 @@ func _get_middle_2(middle_point_index_cache, verts, i1 : int, i2 : int) -> int:
 	middle_point_index_cache[key] = verts.size() - 1
 	return verts.size() - 1
 	
-func _get_middle_3(middle_point_index_cache, verts, i1 : int, i2 : int, i3 : int) -> int:
+func _get_middle_3(verts, i1 : int, i2 : int, i3 : int) -> int:
 	var middle_vec = (verts[i1] + verts[i2] + verts[i3]) / 3.0
 	_add_vert(verts, middle_vec)
 	return verts.size() - 1
 	
-func _get_middle_4(middle_point_index_cache, verts, i1 : int, i2 : int, i3 : int, i4 : int) -> int:
+func _get_middle_4(verts, i1 : int, i2 : int, i3 : int, i4 : int) -> int:
 	var middle_vec = (verts[i1] + verts[i2] + verts[i3] + verts[i4]) / 4.0
 	_add_vert(verts, middle_vec)
 	return verts.size() - 1

@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=2]
+[gd_scene load_steps=31 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -14,10 +14,12 @@
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
 [ext_resource path="res://assets/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
+[ext_resource path="res://bin/wfc.gdns" type="Script" id=15]
 
-[sub_resource type="ShaderMaterial" id=15]
+[sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 7 )
 shader_param/u_sun_pos = null
+shader_param/u_camera_pos = null
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
 shader_param/u_sdf_dist_mod = null
@@ -67,7 +69,7 @@ shader = ExtResource( 4 )
 [sub_resource type="SphereShape" id=9]
 radius = 10.0
 
-[sub_resource type="ShaderMaterial" id=11]
+[sub_resource type="ShaderMaterial" id=10]
 shader = ExtResource( 12 )
 shader_param/u_mesh_tex_size = null
 shader_param/u_num_tris = null
@@ -81,10 +83,10 @@ shader_param/u_use_bounding_sphere = null
 shader_param/u_bound_origin = null
 shader_param/u_bound_radius = null
 
-[sub_resource type="ViewportTexture" id=12]
+[sub_resource type="ViewportTexture" id=11]
 viewport_path = NodePath("SDFGen/Viewport")
 
-[sub_resource type="ShaderMaterial" id=14]
+[sub_resource type="ShaderMaterial" id=12]
 shader = ExtResource( 14 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -94,30 +96,30 @@ shader_param/u_cols = null
 shader_param/u_cam_pos = null
 
 [sub_resource type="CubeMesh" id=13]
-material = SubResource( 14 )
+material = SubResource( 12 )
 
-[sub_resource type="SphereMesh" id=16]
+[sub_resource type="SphereMesh" id=14]
 radius = 5.0
 height = 10.0
 
-[sub_resource type="SpatialMaterial" id=17]
+[sub_resource type="SpatialMaterial" id=15]
 flags_unshaded = true
 albedo_color = Color( 1, 0.843137, 0, 1 )
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
-land_material = SubResource( 15 )
+land_material = SubResource( 1 )
 water_material = SubResource( 3 )
 poss_cube_material = SubResource( 4 )
 voxel_inside_material = SubResource( 5 )
 voxel_outside_material = SubResource( 6 )
 radius = 10.0
+iterations = 1
 relax_iterations = 50
-water_deep_colour = Color( 0.113725, 0.52549, 0.976471, 1 )
+water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
 water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
-cell_height = 1.0
 grid_height = 3
-water_height = 0.9
+water_height = 1.0
 
 [node name="Globe" type="MeshInstance" parent="."]
 transform = Transform( 1, 0.000106591, -0.000468148, -0.000107254, 0.999999, -0.0014405, 0.000467997, 0.00144055, 0.999999, 0, 0, 0 )
@@ -130,7 +132,6 @@ visible = false
 material_override = SubResource( 7 )
 
 [node name="GlobeLand" type="MeshInstance" parent="."]
-transform = Transform( 0.999998, -0.000705984, 0.00198889, 0.000705835, 1, 7.68196e-05, -0.00198894, -7.54311e-05, 0.999998, 0, 0, 0 )
 mesh = SubResource( 8 )
 
 [node name="HGimbal" type="Spatial" parent="."]
@@ -139,7 +140,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 0.993052, -0.117676, 0, 0.117676, 0.993052, 0, -2.48124, 24.3437 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
 
 [node name="Area" type="Area" parent="."]
 
@@ -161,7 +162,7 @@ render_target_clear_mode = 1
 render_target_update_mode = 0
 
 [node name="Rect" type="TextureRect" parent="SDFGen/Viewport"]
-material = SubResource( 11 )
+material = SubResource( 10 )
 margin_right = 40.0
 margin_bottom = 40.0
 texture = ExtResource( 11 )
@@ -171,7 +172,7 @@ expand = true
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-texture = SubResource( 12 )
+texture = SubResource( 11 )
 expand = true
 stretch_mode = 1
 __meta__ = {
@@ -188,8 +189,8 @@ transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4901, 19.7454, 0 )
-mesh = SubResource( 16 )
-material/0 = SubResource( 17 )
+mesh = SubResource( 14 )
+material/0 = SubResource( 15 )
 
 [node name="VSplitContainer" type="VSplitContainer" parent="."]
 visible = false
@@ -218,6 +219,9 @@ margin_top = 13.0
 margin_right = 123.0
 margin_bottom = 27.0
 text = "0"
+
+[node name="WFC" type="Node" parent="."]
+script = ExtResource( 15 )
 [connection signal="input_event" from="Area" to="." method="_on_Area_input_event"]
 [connection signal="mouse_entered" from="Area" to="." method="_on_Area_mouse_entered"]
 [connection signal="mouse_exited" from="Area" to="." method="_on_Area_mouse_exited"]

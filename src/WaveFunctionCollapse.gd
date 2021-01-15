@@ -13,7 +13,6 @@ var _entropy = []
 var _cell_to_idx = {}
 var _last_added := -1
 var _tile_compatibility
-var _layer = 0
 
 
 func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int):
@@ -23,7 +22,6 @@ func init(var i_seed : int, var i_cells, var i_prototypes, var grid_height : int
 	_wave = []
 	_collapsed = []
 	_entropy = []
-	_layer = 0
 	
 	var bot_domain = []
 	for t in range(0, i_prototypes.size()):
@@ -171,7 +169,7 @@ func _wfc_propagate(var i_cells, var i_prototypes) -> bool:
 func _wfc_calc_entropy(domain):
 	var sum_of_weights = 0.0
 	var sum_of_weight_log_weights = 0.0
-	for d in range(0, domain.size()):
+	for _d in range(0, domain.size()):
 		var p = 1.0
 		sum_of_weights += p
 		sum_of_weight_log_weights += p * log(p)

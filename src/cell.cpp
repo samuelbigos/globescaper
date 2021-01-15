@@ -1,0 +1,23 @@
+#include "cell.h"
+
+using namespace godot;
+
+void GDCell::_register_methods() {
+    register_method("_process", &GDCell::_process);
+    register_property<GDCell, Array>("top", &GDCell::top, Array());
+    register_property<GDCell, Array>("bot", &GDCell::bot, Array());
+    register_property<GDCell, int>("layer", &GDCell::layer, 0);
+    register_property<GDCell, Array>("neighbors", &GDCell::neighbors, Array());
+}
+
+GDCell::GDCell() {
+}
+
+GDCell::~GDCell() {
+}
+
+void GDCell::_init() {
+}
+
+void GDCell::_process(float delta) {
+}

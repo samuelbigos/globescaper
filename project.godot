@@ -38,11 +38,10 @@ config/icon="res://icon.png"
 
 [display]
 
-window/size/width=1920
-window/size/height=1080
-window/size/fullscreen=true
-window/size/test_width=1920
-window/size/test_height=1080
+window/size/width=1440
+window/size/height=960
+window/size/test_width=1440
+window/size/test_height=960
 window/stretch/mode="viewport"
 
 [importer_defaults]
@@ -95,3 +94,4 @@ i={
 
 quality/subsurface_scattering/quality=2
 environment/default_clear_color=Color( 0.133333, 0.133333, 0.133333, 1 )
+quality/filters/msaa=2

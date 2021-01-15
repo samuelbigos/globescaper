@@ -47,6 +47,7 @@ export var grid_height = 5
 export var water_height = 0.5
 export var wfc_visualisation = false
 export var voxel_space_visualisation = false
+export var use_gdnative_wfc = true
 
 # members
 var _generated := false
@@ -60,7 +61,6 @@ var _icosphere_polys = []
 var _vert_poly_neighbors = []
 var _prototypes = []
 var _tiles = []
-var _tile_meshes = []
 var _wfc_data = []
 var _wfc_added = []
 var _wfc_step = 0.1
@@ -68,6 +68,7 @@ var _wfc_finished = false
 var _surface_generate = false
 var _cell_add_queue = []
 var _debug_display_mode = 0
+var _prototype_mesh_arrays = {}
 
 # visualisations
 var _possibility_cubes = []
@@ -89,7 +90,10 @@ onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
 onready var _globe_land : MeshInstance = get_node("GlobeLand")
 onready var _wfc = get_node("WaveFunctionCollapse")
 onready var _sdf = get_node("SDFGen")
+onready var _wfc_gd = get_node("WFC")
 
+onready var _gdcell_script = load("res://bin/gdcell.gdns")
+onready var _gdprototype_script = load("res://bin/gdprototype.gdns")
 
 func _ready() -> void:
 	_noise = OpenSimplexNoise.new()
@@ -103,6 +107,33 @@ func _ready() -> void:
 	_wfc_added = []
 	for c in _grid_cells:
 		_wfc_added.append(false)
+		
+	# wfc gd
+	var gd_cells = []
+	for cell in _grid_cells:
+		var gd_cell = _gdcell_script.new()
+		gd_cell.top = cell.v_top
+		gd_cell.bot = cell.v_bot
+		gd_cell.layer = cell.layer
+		gd_cell.neighbors = []
+		for n in cell.neighbors:
+			if n == null:
+				gd_cell.neighbors.append(-1)
+			else:
+				gd_cell.neighbors.append(n.index)
+		gd_cells.append(gd_cell)
+		
+	var gd_prototypes = []
+	for prot in _prototypes:
+		var gd_prot = _gdprototype_script.new()
+		gd_prot.top_slot = prot.top_int
+		gd_prot.bot_slot = prot.bot_int
+		gd_prot.h_slots = prot.h_ints
+		gd_prot.h_slots_inv = prot.h_ints_inv
+		gd_prot.rot = prot.rot
+		gd_prototypes.append(gd_prot)
+		
+	_wfc_gd.setup_wfc(randi(), gd_cells, gd_prototypes, grid_height)
 		
 	_update_gui();
 
@@ -173,6 +204,10 @@ func _load_prototype_data():
 			new_p.weight = prototype.weight
 			new_prototypes.append(new_p)
 			
+		for mesh_name in prototype.mesh_names:
+			if not _prototype_mesh_arrays.has(mesh_name):
+				_prototype_mesh_arrays[mesh_name] = load("res://assets/tiles/" + mesh_name + ".obj").surface_get_arrays(0)
+			
 	return new_prototypes
 
 
@@ -182,9 +217,9 @@ func _generate() -> void:
 	var colours = {}
 	
 	# relaxation
-	for iter in range(0, relax_iterations):
+	for _iter in range(0, relax_iterations):
 		var forces = []
-		for i in range(0, _icosphere_verts.size()):
+		for _i in range(0, _icosphere_verts.size()):
 			forces.append(Vector3())
 
 		for poly in _icosphere_polys:
@@ -240,15 +275,12 @@ func _generate() -> void:
 	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
 	# with a 2D array
 	_grid_voxels = []
-	_grid_verts = []
 	_voxel_spheres = []
 	for v in range(0, _icosphere_verts.size()):
 		_grid_voxels.append([])
-		_grid_verts.append([])
 		_voxel_spheres.append([])
-		for h in range(0, grid_height):
+		for _h in range(0, grid_height):
 			_grid_voxels[v].append(0) # voxel field starts out zero-initialised and gets filled in as WFC runs
-			_grid_verts[v].append(_icosphere_verts[v] + _icosphere_verts[v].normalized() * cell_height * h)
 			if voxel_space_visualisation:
 				var voxel_sphere = MeshInstance.new()
 				var voxel_sphere_mesh = SphereMesh.new()
@@ -257,6 +289,19 @@ func _generate() -> void:
 				voxel_sphere.set_mesh(voxel_sphere_mesh)
 				_voxel_spheres[v].append(voxel_sphere)
 				add_child(voxel_sphere)
+				
+				
+	# build a list of vert ids
+	_grid_verts = []
+	var grid_verts_map = []
+	var vert_idx = 0
+	for i in range(0, _icosphere_verts.size()):
+		grid_verts_map.append([])
+		for h in range(0, grid_height + 1):
+			var vert = _icosphere_verts[i]
+			grid_verts_map[i].append(vert_idx)
+			_grid_verts.append(vert + (vert.normalized() * cell_height * float(h)))
+			vert_idx += 1
 
 	# convert from quads on a sphere to cubes in our 3D grid space where the bottom of the lowest
 	# level of the grid is the quad on the surface of the sphere
@@ -270,12 +315,12 @@ func _generate() -> void:
 			cell.layer = h
 			cell.centre = Vector3(0.0, 0.0, 0.0)
 			for v in range(0, 4):
-				var vert = _icosphere_verts[_icosphere_polys[i].v[v]]
-				#TODO: Don't store verts as floats but as index into vert array
-				cell.v_bot.append(vert + (vert.normalized() * cell_height * float(h)))
-				cell.v_top.append(vert + (vert.normalized() * cell_height * float(h + 1)))
-				cell.centre += cell.v_bot[v - 1]
-				cell.centre += cell.v_top[v - 1]
+				var vert_idx_bot = grid_verts_map[_icosphere_polys[i].v[v]][h]
+				var vert_idx_top = grid_verts_map[_icosphere_polys[i].v[v]][h + 1]
+				cell.v_bot.append(vert_idx_bot)
+				cell.v_top.append(vert_idx_top)
+				cell.centre += _grid_verts[cell.v_bot[v - 1]]
+				cell.centre += _grid_verts[cell.v_top[v - 1]]
 		
 			cell.centre /= 8.0
 			cell.quad = i
@@ -315,20 +360,22 @@ func _generate() -> void:
 			st.begin(Mesh.PRIMITIVE_TRIANGLES)
 			
 			for v in _grid_cells[i].v_top:
-				var n = v - _grid_cells[i].centre
+				var vert = _grid_verts[v]
+				var n = vert - _grid_cells[i].centre
 				var v_height = radius + (cell_height * (float(_grid_cells[i].layer) + 1.0))
 				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-				v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
+				vert = vert.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
 				st.add_normal(n.normalized())
-				st.add_vertex(v)
+				st.add_vertex(vert)
 				
 			for v in _grid_cells[i].v_bot:
-				var n = v - _grid_cells[i].centre
+				var vert = _grid_verts[v]
+				var n = vert - _grid_cells[i].centre
 				var v_height = radius + (cell_height * (float(_grid_cells[i].layer)))
 				var c_height = radius + (cell_height * (float(_grid_cells[i].layer) + 0.5))
-				v = v.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
+				vert = vert.normalized() * v_height - (_grid_cells[i].centre.normalized() * c_height)
 				st.add_normal(n.normalized())
-				st.add_vertex(v)
+				st.add_vertex(vert)
 				
 			for idx in indices:
 				st.add_index(idx)
@@ -348,12 +395,13 @@ func _update_gui():
 
 func _process(delta : float) -> void:
 	
-	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().get_camera_transform().origin)
+	land_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
+	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	
 	_sdf.set_sdf_params_on_mat(land_material)
 	_sdf.set_sdf_params_on_mat(water_material)
 	
-	$SunGimbal.rotation.y += delta * PI * 0.2
+	$SunGimbal.rotation.y += delta * PI * 0.01
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
@@ -364,34 +412,17 @@ func _process(delta : float) -> void:
 		if dist_sq < closest_dist:
 			closest_vert = i
 			closest_dist = dist_sq
-
-	# process wfc
-	if not _wfc_finished:		
-		_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
-		_wfc_data = _wfc._wave		
-		var quad_center := Vector3()
-		for v in _grid_cells[_wfc._last_added].v_bot:
-			quad_center += v
-		quad_center /= 4.0
-		#_camera.set_orientation(quad_center)
 			
-	# add new wfc tiles to a queue for meshing
-	_wfc_step -= delta
-	if _wfc_step < 0.0:
-	#if Input.is_action_just_released("mouse_left"):
-		_wfc_step = 0.01
-		if _wfc_data.size() > 0:
-			for i in range(_grid_cells.size()):
-				if wfc_visualisation:
-					_update_possibility_cube(i, _wfc_data[i].size())
-				if _wfc_added[i]:
-					continue
-				if _wfc_data[i].size() > 1:
-					continue
-					
-				_cell_add_queue.append(i)
-				_wfc_added[i] = true
-				break
+	if use_gdnative_wfc:
+		if not _wfc_finished:
+			var last_wfc = _wfc_gd.step()
+			if last_wfc == -1:
+				_wfc_finished = true
+			_wfc_data = _wfc_gd.get_wave()
+		
+		_process_wfc_gdnative(delta)
+	else:
+		_process_wfc_gdscript(delta)
 		
 	# pump the mesh/sdf builder
 	_generate_surface_from_wfc()
@@ -410,24 +441,85 @@ func _process(delta : float) -> void:
 				$SDFGen/SDFPreview.visible = true
 	
 	_update_gui()
-		
+	
 func _generate_surface_from_wfc():
 	if _cell_add_queue.size() > 0:
 		var i = _cell_add_queue.pop_front()
 			
-		# find a prototype that matches
-		var tile_possibilities = _wfc_data[i]
-		if tile_possibilities.size() == 1:
+		var matched_prot
+		if use_gdnative_wfc:
+			matched_prot = _prototypes[_wfc_data[i]]
+		else:
+			var tile_possibilities = _wfc_data[i]
+			matched_prot = _prototypes[tile_possibilities[0]]
 			
-			var matched_prot = _prototypes[tile_possibilities[0]]
-			_update_voxel_space(i, matched_prot)
-			
-			var mesh = _globe_land.get_mesh()
-			_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
-			
-			if wfc_visualisation:
-				_possibility_cubes[i].queue_free()
-				
+		_update_voxel_space(i, matched_prot)
+		
+		var mesh = _globe_land.get_mesh()
+		_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
+		
+		#_camera.set_orientation(_grid_cells[i].centre)
+		
+		if wfc_visualisation:
+			_possibility_cubes[i].queue_free()
+		
+#func _generate_surface_from_wfc():
+#	if _cell_add_queue.size() > 0:
+#		var i = _cell_add_queue.pop_front()
+#
+#		# find a prototype that matches
+#		var tile_possibilities = _wfc_data[i]
+#		if tile_possibilities.size() == 1:
+#
+#			var matched_prot = _prototypes[tile_possibilities[0]]
+#			_update_voxel_space(i, matched_prot)
+#
+#			var mesh = _globe_land.get_mesh()
+#			_add_mesh_for_prototype_on_quad(matched_prot, _grid_cells[i], mesh)
+#
+#			if wfc_visualisation:
+#				_possibility_cubes[i].queue_free()
+		
+func _process_wfc_gdnative(delta) -> void:
+	# add new wfc tiles to a queue for meshing
+	_wfc_step -= delta
+	if _wfc_step <= 0.0:
+		_wfc_step = 0.0
+		if _wfc_data.size() > 0:
+			for i in range(_grid_cells.size()):
+				if _wfc_data[i] == -1:
+					continue
+				if wfc_visualisation:
+					_update_possibility_cube(i, _wfc_data[i].size())
+				if _wfc_added[i]:
+					continue
+					
+				_cell_add_queue.append(i)
+				_wfc_added[i] = true
+				break
+						
+func _process_wfc_gdscript(delta) -> void:
+	if not _wfc_finished:
+		_wfc_finished = not _wfc.step(_grid_cells, _prototypes)
+		_wfc_data = _wfc._wave
+
+	# add new wfc tiles to a queue for meshing
+	_wfc_step -= delta
+	if _wfc_step < 0.0:
+	#if Input.is_action_just_released("mouse_left"):
+		_wfc_step = 0.01
+		if _wfc_data.size() > 0:
+			for i in range(_grid_cells.size()):
+				if wfc_visualisation:
+					_update_possibility_cube(i, _wfc_data[i].size())
+				if _wfc_added[i]:
+					continue
+				if _wfc_data[i].size() > 1:
+					continue
+
+				_cell_add_queue.append(i)
+				_wfc_added[i] = true
+				break
 
 func _update_voxel_space(i, prototype : Prototype):
 	var quad = _icosphere_polys[_grid_cells[i].quad] as Icosphere.Quad
@@ -459,26 +551,23 @@ func _update_possibility_cube(cell, size):
 	var scaled = float(size) / float(_prototypes.size())
 	scaled *= 0.95
 	_possibility_cubes[cell].scale = Vector3(scaled, scaled, scaled)
-	
 
 func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibilities = false, possibility_idx = 0):
-		
 	var corner_verts_pos = []
 	for j in range(0, 4):
-		corner_verts_pos.append(cell.v_bot[j])
+		corner_verts_pos.append(_grid_verts[cell.v_bot[j]])
 		
 	var sdf_verts = []
 	for i in range(0, prototype.mesh_names.size()):
 		if prototype.mesh_names[i] == "0000-0000":
 			return
-			
-		var tile_mesh : Mesh = load("res://assets/tiles/" + prototype.mesh_names[i] + ".obj")
-		var tile_arrays = tile_mesh.surface_get_arrays(0).duplicate()
+		
+		var tile_arrays = _prototype_mesh_arrays[prototype.mesh_names[i]].duplicate()
 		if tile_arrays.size() == 0:
 			print(prototype.mesh_names[i])
 			printerr("MESH ERROR!")
 			return
-			
+					
 		# transform each vert in the prototype mesh
 		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * prototype.mesh_rots[i])
 		for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
@@ -505,7 +594,6 @@ func _add_mesh_for_prototype_on_quad(prototype, cell : Cell, array_mesh, possibi
 	# draw these meshes on the sdf
 	_sdf.set_mesh_texture(sdf_verts)
 		
-
 func _nearest_point_on_line(var line_point, var line_dir, var point):
 	var v = point - line_point
 	var d = v.dot(line_dir)
