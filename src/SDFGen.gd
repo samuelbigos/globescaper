@@ -49,7 +49,9 @@ func _process(_delta) -> void:
 	
 	if Input.is_action_just_pressed("i"):
 		_sdf_quintic_filter = !_sdf_quintic_filter
-	
+		
+func reset():
+	_draw_idx = 0	
 	
 func set_mesh_texture(var verts) ->void:
 	if verts.size() == 0:

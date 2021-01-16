@@ -1,12 +1,14 @@
-[gd_scene load_steps=28 format=2]
+[gd_scene load_steps=33 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
 [ext_resource path="res://assets/shaders/WaterShader.shader" type="Shader" id=3]
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=4]
-[ext_resource path="res://src/WaveFunctionCollapse.gd" type="Script" id=5]
+[ext_resource path="res://src/WFC.gd" type="Script" id=5]
+[ext_resource path="res://src/PrototypeDB.gd" type="Script" id=6]
 [ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=7]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
+[ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=10]
 [ext_resource path="res://assets/1px.png" type="Texture" id=11]
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
@@ -15,6 +17,7 @@
 [ext_resource path="res://bin/wfc.gdns" type="Script" id=15]
 [ext_resource path="res://src/VoxelGrid.gd" type="Script" id=16]
 [ext_resource path="res://src/Icosphere.gd" type="Script" id=17]
+[ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=18]
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 7 )
@@ -52,12 +55,12 @@ shader_param/u_cols = null
 shader_param/u_sdf_quintic_filter = null
 shader_param/u_3d_noise = SubResource( 2 )
 
-[sub_resource type="ShaderMaterial" id=7]
+[sub_resource type="ShaderMaterial" id=4]
 shader = ExtResource( 4 )
 
-[sub_resource type="ArrayMesh" id=8]
+[sub_resource type="ArrayMesh" id=5]
 
-[sub_resource type="ShaderMaterial" id=10]
+[sub_resource type="ShaderMaterial" id=6]
 shader = ExtResource( 12 )
 shader_param/u_mesh_tex_size = null
 shader_param/u_num_tris = null
@@ -71,10 +74,10 @@ shader_param/u_use_bounding_sphere = null
 shader_param/u_bound_origin = null
 shader_param/u_bound_radius = null
 
-[sub_resource type="ViewportTexture" id=11]
+[sub_resource type="ViewportTexture" id=7]
 viewport_path = NodePath("SDFGen/Viewport")
 
-[sub_resource type="ShaderMaterial" id=12]
+[sub_resource type="ShaderMaterial" id=8]
 shader = ExtResource( 14 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -83,19 +86,25 @@ shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_cam_pos = null
 
-[sub_resource type="CubeMesh" id=13]
-material = SubResource( 12 )
+[sub_resource type="CubeMesh" id=9]
+material = SubResource( 8 )
 
-[sub_resource type="SphereMesh" id=14]
+[sub_resource type="SphereMesh" id=10]
 radius = 5.0
 height = 10.0
 
-[sub_resource type="SpatialMaterial" id=15]
+[sub_resource type="SpatialMaterial" id=11]
 flags_unshaded = true
 albedo_color = Color( 1, 0.843137, 0, 1 )
 
-[sub_resource type="ShaderMaterial" id=16]
+[sub_resource type="ShaderMaterial" id=12]
 shader = ExtResource( 8 )
+
+[sub_resource type="ShaderMaterial" id=13]
+shader = ExtResource( 18 )
+
+[sub_resource type="ShaderMaterial" id=14]
+shader = ExtResource( 9 )
 
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
@@ -109,10 +118,10 @@ water_height = 1.0
 
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
 visible = false
-material_override = SubResource( 7 )
+material_override = SubResource( 4 )
 
 [node name="GlobeLand" type="MeshInstance" parent="."]
-mesh = SubResource( 8 )
+mesh = SubResource( 5 )
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
@@ -120,10 +129,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
-
-[node name="WaveFunctionCollapse" type="Node" parent="."]
-script = ExtResource( 5 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 22.558 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -137,7 +143,7 @@ render_target_clear_mode = 1
 render_target_update_mode = 0
 
 [node name="Rect" type="TextureRect" parent="SDFGen/Viewport"]
-material = SubResource( 10 )
+material = SubResource( 6 )
 margin_right = 40.0
 margin_bottom = 40.0
 texture = ExtResource( 11 )
@@ -147,7 +153,7 @@ expand = true
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-texture = SubResource( 11 )
+texture = SubResource( 7 )
 expand = true
 stretch_mode = 1
 __meta__ = {
@@ -156,7 +162,7 @@ __meta__ = {
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
 visible = false
-mesh = SubResource( 13 )
+mesh = SubResource( 9 )
 material/0 = null
 
 [node name="SunGimbal" type="Spatial" parent="."]
@@ -164,8 +170,8 @@ transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4901, 19.7454, 0 )
-mesh = SubResource( 14 )
-material/0 = SubResource( 15 )
+mesh = SubResource( 10 )
+material/0 = SubResource( 11 )
 
 [node name="VSplitContainer" type="VSplitContainer" parent="."]
 visible = false
@@ -196,13 +202,21 @@ margin_bottom = 27.0
 text = "0"
 
 [node name="WFC" type="Node" parent="."]
+script = ExtResource( 5 )
+
+[node name="WFCNative" type="Node" parent="WFC"]
 script = ExtResource( 15 )
 
-[node name="VoxelGrid" type="Node" parent="."]
+[node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
-grid_height = 4
 cell_height = 1.0
-possibility_cube_material = SubResource( 16 )
+voxel_space_visualisation = true
+possibility_cube_material = SubResource( 12 )
+voxel_inside_material = SubResource( 13 )
+voxel_outside_material = SubResource( 14 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 17 )
+
+[node name="PrototypeDB" type="Node" parent="."]
+script = ExtResource( 6 )

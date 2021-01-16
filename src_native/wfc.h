@@ -73,7 +73,6 @@ public:
     Array get_wave();
 
     void _init();
-    void _process(float delta);    
 };
 
 }

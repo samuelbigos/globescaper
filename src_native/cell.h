@@ -20,6 +20,9 @@ public:
 
     Array top;
     Array bot;
+    bool constrained;
+    Array constraint_top;
+    Array constraint_bot;
     int layer;
     Array neighbors;
 };

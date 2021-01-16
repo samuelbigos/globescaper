@@ -97,8 +97,7 @@ bool ray_hit(vec3 pos, out float dist) {
 
 bool outofbounds(vec3 ray) {
 	float bounds = u_sdf_volume_radius;
-	if (ray.x > bounds || ray.y > bounds || ray.z > bounds 
-		|| ray.x < -bounds || ray.y < -bounds || ray.z < -bounds)
+	if (length(ray) >= u_sdf_volume_radius)
 	{
 		return true;
 	}
@@ -267,7 +266,7 @@ void fragment() {
 	{
 		vec3 normal = NORMAL;
 		incidence = min(1.0, max(0.0, dot(normalize(VERTEX), -normal)));
-		incidence = pow(1.0 - incidence, 7.0);
+		incidence = pow(1.0 - incidence, 3.0);
 	}
 	
 	// water colour modulated by depth and incidence
@@ -344,7 +343,7 @@ void fragment() {
 		
 	// combine terms
 	vec3 col = water_col.rgb;
-	float brightness = 1.5; // global sun brightness
+	float brightness = 1.0; // global sun brightness
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness;

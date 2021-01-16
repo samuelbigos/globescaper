@@ -2,22 +2,6 @@ extends Spatial
 class_name Game
 
 
-class Prototype:
-	var mesh_names = []
-	var mesh_rots = []
-	var rotations = []
-	var rot := 0
-	var corners_bot = []
-	var corners_top = []
-	var bot_int = 0
-	var top_int = 0
-	var h_ints = [0, 0, 0, 0]
-	var h_ints_inv = [0, 0, 0, 0]
-	var slots = []
-	var slot_b : int
-	var slot_t : int
-	var weight := 1.0	
-
 # exposed
 export var land_material : Material
 export var water_material : Material
@@ -27,33 +11,32 @@ export var water_height = 0.5
 export var camera_follow := false
 
 # members
-var _prototypes = []
-var _wfc_data = []
-var _wfc_added = []
-var _wfc_step = 0.1
-var _wfc_finished = false
-var _cell_add_queue = []
+var _cell_idx_to_surface = {}
 var _debug_display_mode = 0
-var _prototype_mesh_arrays = {}
 
 onready var _camera = get_node("HGimbal")
 onready var _globe_wireframe = get_node("GlobeWireframe")
 onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
 onready var _globe_land : MeshInstance = get_node("GlobeLand")
-onready var _wfc = get_node("WaveFunctionCollapse")
 onready var _sdf = get_node("SDFGen")
-onready var _wfc_gd = get_node("WFC")
+onready var _wfc = get_node("WFC")
 onready var _voxel_grid = get_node("VoxelGrid")
 onready var _icosphere = get_node("Icosphere")
+onready var _prototype_db = get_node("PrototypeDB")
 
-onready var _gdcell_script = load("res://bin/gdcell.gdns")
-onready var _gdprototype_script = load("res://bin/gdprototype.gdns")
-
-func _ready() -> void:	
+func _ready() -> void:
 	_icosphere.generate()
-	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys())
-	_prototypes = _load_prototype_data()
+	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius)
+	_prototype_db.load_prototypes()
+	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
 	
+	_setup_meshes()
+	_update_gui();
+	
+func _update_gui():
+	$VSplitContainer/HBoxContainer/QuinticFilteringValue.text = "%d" % [int(_sdf._sdf_quintic_filter)]
+	
+func _setup_meshes():
 	var ocean_mesh = ArrayMesh.new()
 	var ocean_mesh_array = _icosphere.get_array_mesh()
 	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
@@ -71,119 +54,6 @@ func _ready() -> void:
 		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
 	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 	_globe_wireframe.set_mesh(globe_wireframe_mesh)
-	
-	var grid_cells = _voxel_grid.get_cells()
-	_wfc.init(0, grid_cells, _prototypes, _voxel_grid.grid_height)
-	_wfc_added = []
-	for c in grid_cells:
-		_wfc_added.append(false)
-		
-	# wfc gd
-	var gd_cells = []
-	for cell in grid_cells:
-		var gd_cell = _gdcell_script.new()
-		gd_cell.top = cell.v_top
-		gd_cell.bot = cell.v_bot
-		gd_cell.layer = cell.layer
-		gd_cell.neighbors = []
-		for n in cell.neighbors:
-			if n == null:
-				gd_cell.neighbors.append(-1)
-			else:
-				gd_cell.neighbors.append(n.index)
-		gd_cells.append(gd_cell)
-		
-	var gd_prototypes = []
-	for prot in _prototypes:
-		var gd_prot = _gdprototype_script.new()
-		gd_prot.top_slot = prot.top_int
-		gd_prot.bot_slot = prot.bot_int
-		gd_prot.h_slots = prot.h_ints
-		gd_prot.h_slots_inv = prot.h_ints_inv
-		gd_prot.rot = prot.rot
-		gd_prototypes.append(gd_prot)
-		
-	_wfc_gd.setup_wfc(randi(), gd_cells, gd_prototypes, _voxel_grid.grid_height)
-		
-	_update_gui();
-
-func _load_prototype_data():
-	var file = File.new()
-	file.open("res://assets/base_prototypes.json", file.READ)
-	var text = file.get_as_text()
-	var prototypes_dict = JSON.parse(text).result
-	file.close()
-	
-	# convert dictionary to prototypes
-	var prototype_json = prototypes_dict.values()
-	for p in prototype_json[0]:
-		var prototype := Prototype.new()
-		prototype.mesh_names = p["mesh_names"]
-		prototype.mesh_rots = p["mesh_rots"]
-		prototype.rotations = p["rotations"]
-		prototype.corners_bot = p["corners_bot"]
-		prototype.corners_top = p["corners_top"]
-		prototype.slots = [ p["up"], p["right"], p["down"], p["left"] ]
-		prototype.slot_b = p["bottom"]
-		prototype.slot_t = p["top"]
-		if p.has("weight"):
-			prototype.weight = p["weight"]
-		
-		_prototypes.append(prototype)
-	
-	# generate rotation prototypes
-	var new_prototypes = []
-	for prototype in _prototypes:
-		for i in prototype.rotations:
-			if prototype.weight <= 0.0:
-				continue
-				
-			var new_p := Prototype.new()
-			new_p.mesh_names = prototype.mesh_names.duplicate()
-			new_p.mesh_rots = prototype.mesh_rots.duplicate()
-			new_p.rot = int(i)
-			new_p.corners_top = []
-			new_p.corners_top.append(prototype.corners_top[(0 + int(i)) % 4])
-			new_p.corners_top.append(prototype.corners_top[(1 + int(i)) % 4])
-			new_p.corners_top.append(prototype.corners_top[(2 + int(i)) % 4])
-			new_p.corners_top.append(prototype.corners_top[(3 + int(i)) % 4])
-			new_p.corners_bot = []
-			new_p.corners_bot.append(prototype.corners_bot[(0 + int(i)) % 4])
-			new_p.corners_bot.append(prototype.corners_bot[(1 + int(i)) % 4])
-			new_p.corners_bot.append(prototype.corners_bot[(2 + int(i)) % 4])
-			new_p.corners_bot.append(prototype.corners_bot[(3 + int(i)) % 4])
-			new_p.top_int = new_p.corners_top[0] * 1 + new_p.corners_top[1] * 2 + new_p.corners_top[2] * 4 + new_p.corners_top[3] * 8
-			new_p.bot_int = new_p.corners_bot[0] * 1 + new_p.corners_bot[1] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[3] * 8
-			new_p.h_ints = [0, 0, 0, 0]
-			new_p.h_ints[0] = new_p.corners_top[0] * 1 + new_p.corners_top[1] * 2 + new_p.corners_bot[1] * 4 + new_p.corners_bot[0] * 8
-			new_p.h_ints[1] = new_p.corners_top[1] * 1 + new_p.corners_top[2] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[1] * 8
-			new_p.h_ints[2] = new_p.corners_top[2] * 1 + new_p.corners_top[3] * 2 + new_p.corners_bot[3] * 4 + new_p.corners_bot[2] * 8
-			new_p.h_ints[3] = new_p.corners_top[3] * 1 + new_p.corners_top[0] * 2 + new_p.corners_bot[0] * 4 + new_p.corners_bot[3] * 8
-			new_p.h_ints_inv = [0, 0, 0, 0]
-			new_p.h_ints_inv[0] = new_p.corners_top[1] * 1 + new_p.corners_top[0] * 2 + new_p.corners_bot[0] * 4 + new_p.corners_bot[1] * 8
-			new_p.h_ints_inv[1] = new_p.corners_top[2] * 1 + new_p.corners_top[1] * 2 + new_p.corners_bot[1] * 4 + new_p.corners_bot[2] * 8
-			new_p.h_ints_inv[2] = new_p.corners_top[3] * 1 + new_p.corners_top[2] * 2 + new_p.corners_bot[2] * 4 + new_p.corners_bot[3] * 8
-			new_p.h_ints_inv[3] = new_p.corners_top[0] * 1 + new_p.corners_top[3] * 2 + new_p.corners_bot[3] * 4 + new_p.corners_bot[0] * 8
-			new_p.slots = []
-			new_p.slots.append(prototype.slots[(0 + int(i)) % 4])
-			new_p.slots.append(prototype.slots[(1 + int(i)) % 4])
-			new_p.slots.append(prototype.slots[(2 + int(i)) % 4])
-			new_p.slots.append(prototype.slots[(3 + int(i)) % 4])
-			new_p.slot_b = prototype.slot_b
-			new_p.slot_t = prototype.slot_t
-			new_p.weight = prototype.weight
-			new_prototypes.append(new_p)
-			
-		for mesh_name in prototype.mesh_names:
-			if not _prototype_mesh_arrays.has(mesh_name):
-				var mesh : Mesh = load("res://assets/tiles/" + mesh_name + ".obj")
-				if mesh.get_surface_count() > 0:
-					_prototype_mesh_arrays[mesh_name] = mesh.surface_get_arrays(0)
-			
-	return new_prototypes
-	
-func _update_gui():
-	$VSplitContainer/HBoxContainer/QuinticFilteringValue.text = "%d" % [int(_sdf._sdf_quintic_filter)]
 
 func _process(delta : float) -> void:
 	
@@ -194,18 +64,8 @@ func _process(delta : float) -> void:
 	$SunGimbal.rotation.y += delta * PI * 0.01
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
-			
-	if not _wfc_finished:
-		var last_wfc = _wfc_gd.step()
-		if last_wfc == -1:
-			_wfc_finished = true
-		_wfc_data = _wfc_gd.get_wave()
 	
-	_process_wfc_gdnative(delta)
-		
-	# pump the mesh/sdf builder
-	_generate_surface_from_wfc()
-	
+	# debug input stuff
 	if Input.is_action_just_released("spacebar"):
 		_debug_display_mode = (_debug_display_mode + 1) % 2
 		match _debug_display_mode:
@@ -221,42 +81,41 @@ func _process(delta : float) -> void:
 	
 	_update_gui()
 	
-func _generate_surface_from_wfc():
-	if _cell_add_queue.size() > 0:
-		var i = _cell_add_queue.pop_front()
+	# process wfc here because gdnative doesn't like being called from anywhere else
+	if not _wfc._wfc_finished:
+		var added_mesh = false
+		while not added_mesh:
+			var last_wfc = _wfc._wfc_gd.step()
+			added_mesh = on_wfc_cell_collapsed(last_wfc, _wfc._wfc_gd.get_wave()[last_wfc])
+			if last_wfc == -1:
+				added_mesh = true
+				_wfc._wfc_finished = true
 			
-		var matched_prot
-		matched_prot = _prototypes[_wfc_data[i]]
-			
-		#_update_voxel_space(i, matched_prot)
+	# find out which cell face the mouse is over
+	_do_mouse_picking()
+	
+	# reset wfc
+	if Input.is_action_just_pressed("r"):
+		_reset()
 		
-		var mesh = _globe_land.get_mesh()
-		var grid_cells = _voxel_grid.get_cells()
-		_add_mesh_for_prototype_on_quad(matched_prot, grid_cells[i], mesh)
-		
-		if camera_follow:
-			_camera.set_orientation(grid_cells[i].centre)
-		
-func _process_wfc_gdnative(delta) -> void:
-	# add new wfc tiles to a queue for meshing
-	_wfc_step -= delta
-	if _wfc_step <= 0.0:
-		_wfc_step = 0.0
-		if _wfc_data.size() > 0:
-			var grid_cells = _voxel_grid.get_cells()
-			for i in range(grid_cells.size()):
-				if _wfc_data[i] == -1:
-					continue
-				#if wfc_visualisation:
-				#	_update_possibility_cube(i, _wfc_data[i].size())
-				if _wfc_added[i]:
-					continue
-					
-				_cell_add_queue.append(i)
-				_wfc_added[i] = true
-				break
+func _reset():
+	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
+	_globe_land.set_mesh(ArrayMesh.new())
+	_sdf.reset()
+	
+func _do_mouse_picking() -> void:
+	var screen_pos = get_viewport().get_mouse_position()
+	var ray_origin = _camera.get_camera().project_ray_origin(screen_pos)
+	var ray_dir = _camera.get_camera().project_ray_normal(screen_pos).normalized()	
+	var voxel = _voxel_grid.intersect(ray_origin, ray_dir)
+	
+	if voxel:
+		if Input.is_action_just_released("mouse_left"):
+			_voxel_grid.set_voxel(voxel, true)
+			_reset()
 
-func _add_mesh_for_prototype_on_quad(prototype, cell, array_mesh):
+func _add_mesh_for_prototype_on_quad(cell, prototype):
+	var array_mesh = _globe_land.get_mesh()
 	var grid_verts = _voxel_grid.get_verts()
 	var corner_verts_pos = []
 	for j in range(0, 4):
@@ -264,14 +123,14 @@ func _add_mesh_for_prototype_on_quad(prototype, cell, array_mesh):
 		
 	var sdf_verts = []
 	for i in range(0, prototype.mesh_names.size()):
-		if not _prototype_mesh_arrays.has(prototype.mesh_names[i]):
-			return
+		var mesh = _prototype_db.get_prototype_mesh(prototype.mesh_names[i])
+		if mesh == null:
+			return false
 			
-		var tile_arrays = _prototype_mesh_arrays[prototype.mesh_names[i]].duplicate()
+		var tile_arrays = mesh.duplicate()
 		if tile_arrays.size() == 0:
 			print(prototype.mesh_names[i])
-			printerr("MESH ERROR!")
-			return
+			return false
 					
 		# transform each vert in the prototype mesh
 		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * prototype.mesh_rots[i])
@@ -295,15 +154,12 @@ func _add_mesh_for_prototype_on_quad(prototype, cell, array_mesh):
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
+		_cell_idx_to_surface[cell.index] = array_mesh.get_surface_count() - 1
 		
 	# draw these meshes on the sdf
 	_sdf.set_mesh_texture(sdf_verts)
-		
-func _nearest_point_on_line(var line_point, var line_dir, var point):
-	var v = point - line_point
-	var d = v.dot(line_dir)
-	return line_point + line_dir * d
-
+	
+	return true
 
 func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer : int) -> Vector3:
 	var vert_height = (vert.y + 1.0) / 2.0 # map to 0-1
@@ -324,3 +180,11 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer :
 	# add height
 	var height = _icosphere.radius + (_voxel_grid.cell_height) * (float(layer) + vert_height)
 	return vert.normalized() * height
+
+func on_wfc_cell_collapsed(var cell_idx : int, var prototype_idx : int) -> bool:
+	var cell = _voxel_grid.get_cells()[cell_idx]
+	var prot = _prototype_db.get_prototypes()[prototype_idx]
+	if camera_follow:
+		_camera.set_orientation(_voxel_grid.get_cells()[cell_idx].centre)
+		
+	return _add_mesh_for_prototype_on_quad(cell, prot)
