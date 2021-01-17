@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded;
+//render_mode unshaded;
 
 uniform vec4 u_deep_colour = vec4(1.0);
 uniform vec4 u_shallow_colour = vec4(1.0);

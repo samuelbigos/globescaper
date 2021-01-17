@@ -9,9 +9,11 @@ export var water_deep_colour : Color
 export var water_shallow_colour : Color
 export var water_height = 0.5
 export var camera_follow := false
+export var wfc_auto := false
 
 # members
 var _cell_idx_to_surface = {}
+var _cell_idx_to_prototype = {}
 var _debug_display_mode = 0
 
 onready var _camera = get_node("HGimbal")
@@ -23,12 +25,13 @@ onready var _wfc = get_node("WFC")
 onready var _voxel_grid = get_node("VoxelGrid")
 onready var _icosphere = get_node("Icosphere")
 onready var _prototype_db = get_node("PrototypeDB")
+onready var _mouse_picker = get_node("MousePicker")
 
 func _ready() -> void:
 	_icosphere.generate()
 	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius)
 	_prototype_db.load_prototypes()
-	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
+	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
 	
 	_setup_meshes()
 	_update_gui();
@@ -48,12 +51,12 @@ func _setup_meshes():
 	water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
 	_globe_ocean.set_mesh(ocean_mesh)
 	
-	var globe_wireframe_mesh = ArrayMesh.new()
-	var globe_wireframe_array = _icosphere.get_array_mesh(true)
-	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
-	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+#	var globe_wireframe_mesh = ArrayMesh.new()
+#	var globe_wireframe_array = _icosphere.get_array_mesh(true)
+#	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
+#		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+#	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
+#	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
 func _process(delta : float) -> void:
 	
@@ -61,7 +64,7 @@ func _process(delta : float) -> void:
 	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)	
 	_sdf.set_sdf_params_on_mat(land_material)
 	_sdf.set_sdf_params_on_mat(water_material)	
-	$SunGimbal.rotation.y += delta * PI * 0.01
+	#$SunGimbal.rotation.y += delta * PI * 0.01
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
@@ -100,8 +103,8 @@ func _process(delta : float) -> void:
 		
 func _reset():
 	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
-	_globe_land.set_mesh(ArrayMesh.new())
-	_sdf.reset()
+	#_globe_land.set_mesh(ArrayMesh.new())
+	#_sdf.reset()
 	
 func _do_mouse_picking() -> void:
 	var screen_pos = get_viewport().get_mouse_position()
@@ -110,6 +113,7 @@ func _do_mouse_picking() -> void:
 	var voxel = _voxel_grid.intersect(ray_origin, ray_dir)
 	
 	if voxel:
+		_mouse_picker.transform.origin = _voxel_grid.get_verts()[voxel.vert]
 		if Input.is_action_just_released("mouse_left"):
 			_voxel_grid.set_voxel(voxel, true)
 			_reset()
@@ -122,6 +126,7 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 		corner_verts_pos.append(grid_verts[cell.v_bot[j]])
 		
 	var sdf_verts = []
+	_cell_idx_to_surface[cell.index] = []
 	for i in range(0, prototype.mesh_names.size()):
 		var mesh = _prototype_db.get_prototype_mesh(prototype.mesh_names[i])
 		if mesh == null:
@@ -154,7 +159,7 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, land_material)
-		_cell_idx_to_surface[cell.index] = array_mesh.get_surface_count() - 1
+		_cell_idx_to_surface[cell.index].append(array_mesh.get_surface_count() - 1)
 		
 	# draw these meshes on the sdf
 	_sdf.set_mesh_texture(sdf_verts)
@@ -187,4 +192,22 @@ func on_wfc_cell_collapsed(var cell_idx : int, var prototype_idx : int) -> bool:
 	if camera_follow:
 		_camera.set_orientation(_voxel_grid.get_cells()[cell_idx].centre)
 		
+	if _cell_idx_to_prototype.has(cell.index) and _cell_idx_to_prototype[cell.index] == prototype_idx:
+		return false
+		
+	remove_cell_surface(cell.index)
+		
+	_cell_idx_to_prototype[cell.index] = prototype_idx
 	return _add_mesh_for_prototype_on_quad(cell, prot)
+
+func remove_cell_surface(var cell_idx):
+	if not _cell_idx_to_surface.has(cell_idx):
+		return
+		
+	var surface_idx_array = _cell_idx_to_surface[cell_idx]
+	for i in surface_idx_array:
+		_globe_land.mesh.surface_remove(i)
+		for key in _cell_idx_to_surface.keys():
+			for s in range(0, _cell_idx_to_surface[key].size()):
+				if _cell_idx_to_surface[key][s] > i:
+					_cell_idx_to_surface[key][s] -= 1

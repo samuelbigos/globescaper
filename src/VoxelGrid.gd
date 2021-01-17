@@ -176,7 +176,7 @@ func create(var icosphere_verts, var icosphere_polys, var radius: float):
 			for idx in indices:
 				st.add_index(idx)
 			
-			cube.set_mesh(st.commit())
+			cube.set_mesh(st.commit())		
 			cube.set_surface_material(0, possibility_cube_material)
 			cube.cast_shadow = false
 			_possibility_cubes.append(cube)

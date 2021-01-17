@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=2]
+[gd_scene load_steps=35 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -106,6 +106,13 @@ shader = ExtResource( 18 )
 [sub_resource type="ShaderMaterial" id=14]
 shader = ExtResource( 9 )
 
+[sub_resource type="SphereMesh" id=16]
+radial_segments = 16
+rings = 16
+
+[sub_resource type="ShaderMaterial" id=17]
+shader = ExtResource( 8 )
+
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
 land_material = SubResource( 1 )
@@ -129,7 +136,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 22.558 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 28.3222 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -209,8 +216,8 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
+grid_height = 4
 cell_height = 1.0
-voxel_space_visualisation = true
 possibility_cube_material = SubResource( 12 )
 voxel_inside_material = SubResource( 13 )
 voxel_outside_material = SubResource( 14 )
@@ -220,3 +227,8 @@ script = ExtResource( 17 )
 
 [node name="PrototypeDB" type="Node" parent="."]
 script = ExtResource( 6 )
+
+[node name="MousePicker" type="MeshInstance" parent="."]
+transform = Transform( 0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 0, 0, 0 )
+mesh = SubResource( 16 )
+material/0 = SubResource( 17 )

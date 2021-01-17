@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded;
+//render_mode unshaded;
 
 uniform sampler2D u_texture;
 uniform vec3 u_sun_pos;
@@ -374,12 +374,12 @@ void fragment() {
 	vec3 perturb = vec3(diffuse_noise_x, diffuse_noise_y, 0.0);
 	reflection_ray = normalize((WORLD_PIXEL + reflection_ray + perturb * 0.25) - WORLD_PIXEL);
 	float spec = clamp(dot(normalize(reflection_ray), normalize(u_sun_pos - WORLD_PIXEL)), 0.0, 1.0);
-	spec = pow(spec, 2.0) * 0.5;
+	spec = pow(spec, 3.0) * 0.25;
 	spec = mix(spec, 0.0, 1.0 - s);
 	
 	// combine terms
 	vec3 col = texture(u_texture, UV).rgb;
-	float brightness = 2.5; 
+	float brightness = 2.0; 
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness; // global sun brightness
