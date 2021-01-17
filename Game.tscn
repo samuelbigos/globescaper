@@ -118,7 +118,7 @@ script = ExtResource( 1 )
 land_material = SubResource( 1 )
 water_material = SubResource( 3 )
 water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
-water_shallow_colour = Color( 0.207843, 0.882353, 1, 1 )
+water_shallow_colour = Color( 0.286275, 0.894118, 1, 1 )
 water_height = 1.0
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
@@ -136,7 +136,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 28.3222 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 21.5947 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )

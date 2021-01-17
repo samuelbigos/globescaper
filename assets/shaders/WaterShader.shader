@@ -247,14 +247,19 @@ void fragment() {
 	vec3 water_col = vec3(0.0);
 	float depth_difference = 0.0;
 	{
-		float depth = texture(DEPTH_TEXTURE, SCREEN_UV).x;
-		vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;
-		vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
-		view.xyz /= view.w;
-		float linear_depth = -view.z;
+		// depth texture based water depth calculation - issues with MSAA and skewed based on perspective
+//		float depth = texture(DEPTH_TEXTURE, SCREEN_UV).x;
+//		vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;
+//		vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+//		view.xyz /= view.w;
+//		float linear_depth = -view.z;
+//
+//		depth_difference = linear_depth - (FRAGCOORD.z / FRAGCOORD.w);
+
+		// SDF based water depth instead
+		ray_hit(WORLD_PIXEL, depth_difference);
 		
-		depth_difference = linear_depth - (FRAGCOORD.z / FRAGCOORD.w);
-		float max_depth = 0.5;
+		float max_depth = 0.25;
 		depth_difference = 1.0 - min(1.0, max(0.0, depth_difference / max_depth));
 		depth_difference = pow(depth_difference, 1.0);
 		
@@ -284,7 +289,7 @@ void fragment() {
 		float wl_b = 0.05;
 		float wave_low = 1.0 - step(wl_a, wl_noise) * step(wl_noise, wl_b) * 0.25;
 		
-		float shore_noise = get_noise_4d(vec4(WORLD_PIXEL * vec3(1.0, 0.5, 1.0), (TIME + 999.0) * 0.025), 0.1, 2);
+		float shore_noise = get_noise_4d(vec4(WORLD_PIXEL * vec3(1.0, 0.5, 1.0), (TIME + 99.0) * 0.025), 0.1, 2);
 		shore_noise *= 0.25;
 		float shore_step = ((1.0 - depth_difference) - 0.5) * 0.5;
 		float wave_shore = step(shore_step, shore_noise) * depth_difference;
@@ -335,6 +340,7 @@ void fragment() {
 	reflection_ray = normalize((WORLD_PIXEL + reflection_ray + perturb * 0.25) - WORLD_PIXEL);
 	float r = sdf_render(WORLD_PIXEL, reflection_ray);
 	r *= 0.5;
+	r = mix(r, 0.0, clamp(depth_difference, 0.0, 1.0)); // don't show reflection in the shore wash.
 	
 	// specular
 	float spec = clamp(dot(normalize(reflection_ray), normalize(u_sun_pos - WORLD_PIXEL)), 0.0, 1.0);
