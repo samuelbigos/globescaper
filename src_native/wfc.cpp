@@ -133,7 +133,14 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
                 match_count++;
         }
         if (match_count == 0) {
-            printf("match failed: %d\n", i);
+            printf("match failed: %d/%d/%d/%d-%d/%d/%d/%d\n", (uint8_t)cell->constraint_bot[0],
+                (uint8_t)cell->constraint_bot[1],
+                (uint8_t)cell->constraint_bot[2],
+                (uint8_t)cell->constraint_bot[3],
+                (uint8_t)cell->constraint_top[0],
+                (uint8_t)cell->constraint_top[1],
+                (uint8_t)cell->constraint_top[2],
+                (uint8_t)cell->constraint_top[3]);
         }       
 
         _entropy[i] = 99999.9;

@@ -103,8 +103,13 @@ func _process(delta : float) -> void:
 		
 func _reset():
 	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
-	#_globe_land.set_mesh(ArrayMesh.new())
-	#_sdf.reset()
+	#_reset_mesh()
+	
+func _reset_mesh():
+	_globe_land.set_mesh(ArrayMesh.new())
+	_cell_idx_to_surface.clear()
+	_cell_idx_to_prototype.clear()
+	_sdf.reset()
 	
 func _do_mouse_picking() -> void:
 	var screen_pos = get_viewport().get_mouse_position()
@@ -134,7 +139,6 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 			
 		var tile_arrays = mesh.duplicate()
 		if tile_arrays.size() == 0:
-			print(prototype.mesh_names[i])
 			return false
 					
 		# transform each vert in the prototype mesh

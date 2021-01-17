@@ -120,6 +120,7 @@ water_material = SubResource( 3 )
 water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
 water_shallow_colour = Color( 0.286275, 0.894118, 1, 1 )
 water_height = 1.0
+wfc_auto = true
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
 
@@ -224,6 +225,7 @@ voxel_outside_material = SubResource( 14 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 17 )
+subdivisions = 2
 
 [node name="PrototypeDB" type="Node" parent="."]
 script = ExtResource( 6 )

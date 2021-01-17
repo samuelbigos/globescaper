@@ -357,5 +357,47 @@
          "bottom": 1,
          "weight": 0.0
       },
+      {
+         "mesh_names": ["cliff_1100-1000"],
+         "mesh_rots": [0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 0, 0],
+         "corners_top": [1, 0, 0, 0],
+         "up": 1,
+         "right": 1,
+         "down": 1,
+         "left": 1,
+         "top": 1,
+         "bottom": 1,
+         "weight": 1.0
+      },
+      {
+         "mesh_names": ["cliff_1100-0100"],
+         "mesh_rots": [0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 0, 0],
+         "corners_top": [0, 1, 0, 0],
+         "up": 1,
+         "right": 1,
+         "down": 1,
+         "left": 1,
+         "top": 1,
+         "bottom": 1,
+         "weight": 1.0
+      },
+      {
+         "mesh_names": ["cliff_1110-1010"],
+         "mesh_rots": [0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 1, 0],
+         "corners_top": [1, 0, 1, 0],
+         "up": 1,
+         "right": 1,
+         "down": 1,
+         "left": 1,
+         "top": 1,
+         "bottom": 1,
+         "weight": 1.0
+      },
    ]
 }
