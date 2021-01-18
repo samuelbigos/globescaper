@@ -26,6 +26,7 @@ onready var _voxel_grid = get_node("VoxelGrid")
 onready var _icosphere = get_node("Icosphere")
 onready var _prototype_db = get_node("PrototypeDB")
 onready var _mouse_picker = get_node("MousePicker")
+onready var _atmosphere = get_node("Atmosphere")
 
 func _ready() -> void:
 	_icosphere.generate()
@@ -58,15 +59,24 @@ func _setup_meshes():
 #	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 #	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
-func _process(delta : float) -> void:
+func _process(delta: float) -> void:
+	_camera.update(delta)
 	
+	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
 	land_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
-	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)	
 	_sdf.set_sdf_params_on_mat(land_material)
-	_sdf.set_sdf_params_on_mat(water_material)	
-	#$SunGimbal.rotation.y += delta * PI * 0.01
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
+	
+	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
+	_sdf.set_sdf_params_on_mat(water_material)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
+	
+	atmosphere_mat.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
+	_sdf.set_sdf_params_on_mat(atmosphere_mat)
+	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
+	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
+	
+	#$SunGimbal.rotation.y += delta * PI * 0.01	
 	
 	# debug input stuff
 	if Input.is_action_just_released("spacebar"):

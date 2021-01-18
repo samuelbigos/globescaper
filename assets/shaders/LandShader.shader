@@ -379,11 +379,12 @@ void fragment() {
 	
 	// combine terms
 	vec3 col = texture(u_texture, UV).rgb;
-	float brightness = 2.0; 
+	float brightness = 2.0;
+	float ambient = 0.0;
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness; // global sun brightness
 	ALBEDO *= ao; // ao term
-	ALBEDO *= clamp(s + 0.05, 0.0, 1.0); // shadow + ambient term
+	ALBEDO *= clamp(s + ambient, 0.0, 1.0); // shadow + ambient term
 	ALBEDO *= (1.0 + spec); // specular term
 }

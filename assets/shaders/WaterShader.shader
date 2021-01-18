@@ -350,11 +350,12 @@ void fragment() {
 	// combine terms
 	vec3 col = water_col.rgb;
 	float brightness = 1.0; // global sun brightness
+	float ambient = 0.0;
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness;
 	ALBEDO *= ao; // ao term
-	ALBEDO *= clamp(s + 0.1, 0.0, 1.0); // shadow + ambient term
+	ALBEDO *= clamp(s + ambient, 0.0, 1.0); // shadow + ambient term
 	ALBEDO *= (1.0 - r); // reflection term
 	ALBEDO *= (1.0 + spec); // specular term
 }

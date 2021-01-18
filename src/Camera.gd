@@ -13,8 +13,7 @@ onready var _camera = get_node("VGimbal/Camera")
 
 func get_camera(): return _camera
 
-func _process(delta : float) -> void:
-	
+func update(delta: float) -> void:	
 	if Input.is_action_just_pressed("mouse_right"):
 		_mouse_position = get_viewport().get_mouse_position()
 		enable_manual_control()
@@ -34,10 +33,10 @@ func _process(delta : float) -> void:
 		_v_gimbal.rotation.x = min(max(_v_gimbal.rotation.x + _velocity.y * 0.01, -PI * 0.5), PI * 0.5)
 		_velocity = lerp(_velocity, Vector2(0.0, 0.0), delta)
 
-func set_orientation(lookat : Vector3):
+func set_orientation(lookat: Vector3) -> void:
 	if not _did_input:
 		_follow_target = true
 		_target = lookat.normalized()
 	
-func enable_manual_control():
+func enable_manual_control() -> void:
 	_follow_target = false
