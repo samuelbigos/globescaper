@@ -61,8 +61,7 @@ func _setup_meshes():
 
 func _process(delta: float) -> void:
 	_camera.update(delta)
-	
-	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
+		
 	land_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf.set_sdf_params_on_mat(land_material)
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
@@ -71,10 +70,13 @@ func _process(delta: float) -> void:
 	_sdf.set_sdf_params_on_mat(water_material)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
+	_atmosphere.visible = true
+	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
 	atmosphere_mat.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf.set_sdf_params_on_mat(atmosphere_mat)
 	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
+	
 	
 	#$SunGimbal.rotation.y += delta * PI * 0.01	
 	

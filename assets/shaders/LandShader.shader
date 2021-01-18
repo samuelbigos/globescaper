@@ -250,7 +250,7 @@ float shadow_calc(vec3 origin, vec3 dir, float k) {
 		}
 		float y = dist * dist / (2.0 * ph);
 		float d = sqrt(dist * dist - y * y);
-		res = min(k * res, dist / max(0.0, t - y));
+		res = min(res, k * dist / max(0.0, t - y));
 		ph = dist;
 		t += dist;
 		ray = origin + dir * t;

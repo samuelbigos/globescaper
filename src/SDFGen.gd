@@ -2,7 +2,7 @@ extends Node
 
 export var _sdf_max_width : int = 4096
 export var _sdf_resolution : int = 384
-export var _sdf_volume_radius := 15.0
+export var _sdf_volume_radius := 20.0
 export var _sdf_dist_mod := 1.0
 export var _mesh_image_size = Vector2(64, 64)
 export var _sdf_quintic_filter := false

@@ -60,6 +60,7 @@ window/size/test_width=960
 window/size/test_height=640
 window/vsync/use_vsync=false
 window/stretch/mode="viewport"
+window/filters/msaa=3
 
 [importer_defaults]
 
@@ -114,6 +115,7 @@ r={
 
 [rendering]
 
-environment/default_clear_color=Color( 0.133333, 0.133333, 0.133333, 1 )
+environment/default_clear_color=Color( 0, 0, 0, 1 )
 quality/filters/msaa=2
 environment/default_environment="res://assets/env.tres"
+quality/size/height=960
