@@ -20,6 +20,7 @@ uniform float u_sun_intensity = 0.1;
 uniform float u_scattering_strength = 1.0;
 uniform vec3 u_scattering_wavelengths = vec3(100.0);
 uniform float u_density_falloff = 1.0;
+uniform float u_volumetric_shadow_scale = 10.0;
 
 varying vec3 WORLD_PIXEL;
 
@@ -107,7 +108,7 @@ bool raymarch(vec3 ro, vec3 rd, out vec3 hit, out float res) {
 		{
 			return false;
 		}
-		res = min(res, 1.0 * dist / t);
+		res = min(res, u_volumetric_shadow_scale * dist / t);
 		t += dist;
 	}
 	return false;
@@ -210,7 +211,7 @@ void fragment() {
 			float view_ray_optical_depth = optical_depth(in_scatter_point, -ray, dist);
 			
 			vec3 transmittance = exp(-scatter_coeffs * (sun_ray_optical_depth + view_ray_optical_depth));
-			light += transmittance * density_at_point(in_scatter_point) * step_size;
+			light += transmittance * density_at_point(in_scatter_point) * step_size * res;
 			dist += step_size;
 		}
 		vec3 sun_i = light * u_sun_intensity * scatter_coeffs;

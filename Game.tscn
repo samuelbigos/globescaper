@@ -72,14 +72,15 @@ shader_param/u_cols = null
 shader_param/u_camera_pos = null
 shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
-shader_param/u_atmosphere_radius = 16.536
+shader_param/u_atmosphere_radius = 18.0
 shader_param/u_planet_radius = 11.069
 shader_param/u_atmosphere_samples = 30
-shader_param/u_optical_samples = 5
-shader_param/u_sun_intensity = 0.161
-shader_param/u_scattering_strength = 1.0
+shader_param/u_optical_samples = 10
+shader_param/u_sun_intensity = 0.222
+shader_param/u_scattering_strength = 1.391
 shader_param/u_scattering_wavelengths = Vector3( 700, 530, 440 )
-shader_param/u_density_falloff = 4.444
+shader_param/u_density_falloff = 5.163
+shader_param/u_volumetric_shadow_scale = 16.029
 
 [sub_resource type="SphereMesh" id=18]
 material = SubResource( 19 )
@@ -154,7 +155,7 @@ script = ExtResource( 2 )
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 26.8128 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 34.9069 )
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
 
@@ -207,7 +208,7 @@ material/0 = null
 transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
-transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 35.4901, 19.7454, 0 )
+transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 0, 0 )
 mesh = SubResource( 10 )
 material/0 = SubResource( 11 )
 
@@ -247,7 +248,7 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
-grid_height = 4
+grid_height = 5
 cell_height = 1.0
 possibility_cube_material = SubResource( 12 )
 voxel_inside_material = SubResource( 13 )

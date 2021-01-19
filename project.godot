@@ -54,11 +54,10 @@ gdscript/warnings/integer_division=false
 
 [display]
 
-window/size/width=1920
-window/size/height=1080
-window/size/fullscreen=true
-window/size/test_width=960
-window/size/test_height=640
+window/size/width=1440
+window/size/height=960
+window/size/test_width=1440
+window/size/test_height=960
 window/vsync/use_vsync=false
 window/stretch/mode="viewport"
 window/filters/msaa=3
@@ -111,6 +110,16 @@ i={
 r={
 "deadzone": 0.5,
 "events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":82,"unicode":0,"echo":false,"script":null)
+ ]
+}
+mousewheel_up={
+"deadzone": 0.5,
+"events": [ Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":4,"pressed":false,"doubleclick":false,"script":null)
+ ]
+}
+mousewheel_down={
+"deadzone": 0.5,
+"events": [ Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"button_mask":0,"position":Vector2( 0, 0 ),"global_position":Vector2( 0, 0 ),"factor":1.0,"button_index":5,"pressed":false,"doubleclick":false,"script":null)
  ]
 }
 

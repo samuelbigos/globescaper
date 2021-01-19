@@ -77,8 +77,7 @@ func _process(delta: float) -> void:
 	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
 	
-	
-	#$SunGimbal.rotation.y += delta * PI * 0.01	
+	$SunGimbal.rotation.y += delta * PI * 0.2
 	
 	# debug input stuff
 	if Input.is_action_just_released("spacebar"):

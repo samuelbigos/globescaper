@@ -22,6 +22,11 @@ func update(delta: float) -> void:
 		_velocity = _mouse_position - get_viewport().get_mouse_position()
 		_mouse_position = get_viewport().get_mouse_position()
 		
+	if Input.is_action_just_released("mousewheel_up"):
+		_camera.transform.origin.z -= 1.0
+	elif Input.is_action_just_released("mousewheel_down"):
+		_camera.transform.origin.z += 1.0
+		
 	#_velocity.x = -20.0 * delta
 	#_v_gimbal.rotation.x = -0.6
 	
