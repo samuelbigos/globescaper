@@ -17,7 +17,8 @@ uniform float u_planet_radius;
 uniform int u_atmosphere_samples = 20;
 uniform int u_optical_samples = 10;
 uniform float u_sun_intensity = 0.1;
-uniform float u_scattering_coeff = 1.0;
+uniform float u_scattering_strength = 1.0;
+uniform vec3 u_scattering_wavelengths = vec3(100.0);
 uniform float u_density_falloff = 1.0;
 
 varying vec3 WORLD_PIXEL;
@@ -174,6 +175,11 @@ void fragment() {
 	vec3 ray = normalize(WORLD_PIXEL - u_camera_pos);
 	vec3 origin = WORLD_PIXEL;
 	
+	vec3 scatter_coeffs = vec3(0.0);
+	scatter_coeffs.r = pow(400.0 / u_scattering_wavelengths.r, 4.0) * u_scattering_strength;
+	scatter_coeffs.g = pow(400.0 / u_scattering_wavelengths.g, 4.0) * u_scattering_strength;
+	scatter_coeffs.b = pow(400.0 / u_scattering_wavelengths.b, 4.0) * u_scattering_strength;
+	
 	float aA; // atmosphere entry
 	float aB; // atmosphere exit (or planet surface)
 	if (intersect(origin, ray, u_atmosphere_radius, u_planet_centre, aA, aB)) {
@@ -185,7 +191,7 @@ void fragment() {
 		}
 			
 		float optical_depth_pa = 0.0;
-		float light = 0.0;		
+		vec3 light = vec3(0.0);
 		float step_size = (aB - aA) / float(u_atmosphere_samples);
 		float dist = aA + step_size * 0.5;
 		
@@ -203,11 +209,11 @@ void fragment() {
 			float sun_ray_optical_depth = optical_depth(in_scatter_point, to_sun, sun_ray_dist);
 			float view_ray_optical_depth = optical_depth(in_scatter_point, -ray, dist);
 			
-			float transmittance = exp(-u_scattering_coeff * (sun_ray_optical_depth + view_ray_optical_depth));
+			vec3 transmittance = exp(-scatter_coeffs * (sun_ray_optical_depth + view_ray_optical_depth));
 			light += transmittance * density_at_point(in_scatter_point) * step_size;
 			dist += step_size;
 		}
-		float sun_i = u_sun_intensity * light;
+		vec3 sun_i = light * u_sun_intensity * scatter_coeffs;
 		ALBEDO = vec3(sun_i);
 	}
 	else {

@@ -72,13 +72,14 @@ shader_param/u_cols = null
 shader_param/u_camera_pos = null
 shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
-shader_param/u_atmosphere_radius = 18.0
+shader_param/u_atmosphere_radius = 16.536
 shader_param/u_planet_radius = 11.069
 shader_param/u_atmosphere_samples = 30
 shader_param/u_optical_samples = 5
-shader_param/u_sun_intensity = 0.1
-shader_param/u_scattering_coeff = 0.384
-shader_param/u_density_falloff = 4.716
+shader_param/u_sun_intensity = 0.161
+shader_param/u_scattering_strength = 1.0
+shader_param/u_scattering_wavelengths = Vector3( 700, 530, 440 )
+shader_param/u_density_falloff = 4.444
 
 [sub_resource type="SphereMesh" id=18]
 material = SubResource( 19 )
@@ -246,15 +247,14 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
-grid_height = 5
-cell_height = 0.75
+grid_height = 4
+cell_height = 1.0
 possibility_cube_material = SubResource( 12 )
 voxel_inside_material = SubResource( 13 )
 voxel_outside_material = SubResource( 14 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 17 )
-subdivisions = 2
 
 [node name="PrototypeDB" type="Node" parent="."]
 script = ExtResource( 6 )

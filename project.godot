@@ -54,8 +54,9 @@ gdscript/warnings/integer_division=false
 
 [display]
 
-window/size/width=960
-window/size/height=640
+window/size/width=1920
+window/size/height=1080
+window/size/fullscreen=true
 window/size/test_width=960
 window/size/test_height=640
 window/vsync/use_vsync=false
