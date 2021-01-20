@@ -1,7 +1,7 @@
 extends Node
 
 export var _sdf_max_width : int = 4096
-export var _sdf_resolution : int = 384
+export var _sdf_resolution : int = 256
 export var _sdf_volume_radius := 20.0
 export var _sdf_dist_mod := 1.0
 export var _mesh_image_size = Vector2(64, 64)
@@ -24,7 +24,7 @@ func _ready():
 	var rows = int(ceil(float(_sdf_resolution) / per_row))	
 	
 	var res = Vector2(cols * _sdf_resolution, rows * _sdf_resolution)
-	
+	print(res)
 	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
 	_viewport.size = res
 	_viewport.get_node("Rect").rect_size = res
@@ -87,8 +87,7 @@ func set_mesh_texture(var verts) ->void:
 	_viewport_mat.set_shader_param("u_bound_radius", radius)
 	
 	var image_texture = ImageTexture.new()
-	image_texture.create_from_image(mesh_data)
-	image_texture.flags = 0
+	image_texture.create_from_image(mesh_data, 0)
 	
 	_viewport_mat.set_shader_param("u_sdf", _viewport.get_texture())
 	_viewport_mat.set_shader_param("u_mesh_tex", image_texture)
@@ -99,7 +98,7 @@ func set_mesh_texture(var verts) ->void:
 	_draw_idx += 1
 	
 func get_texture() -> Texture:
-	_viewport.get_texture().flags = Texture.FLAG_FILTER
+	#_viewport.get_texture().flags = Texture.FLAG_FILTER
 	return _viewport.get_texture()
 
 func set_sdf_params_on_mat(var material : Material) -> void:

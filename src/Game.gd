@@ -70,24 +70,24 @@ func _process(delta: float) -> void:
 	_sdf.set_sdf_params_on_mat(water_material)
 	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
-	_atmosphere.visible = true
+	#_atmosphere.visible = true
 	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
 	atmosphere_mat.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf.set_sdf_params_on_mat(atmosphere_mat)
 	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
 	
-	$SunGimbal.rotation.y += delta * PI * 0.2
+	$SunGimbal.rotation.y += delta * PI * 0.1
 	
 	# debug input stuff
 	if Input.is_action_just_released("spacebar"):
 		_debug_display_mode = (_debug_display_mode + 1) % 2
 		match _debug_display_mode:
 			0:
-				$SDFGen/SDFVolume.visible = true
+				$SDFGen/SDFVolume.visible = false
 				$SDFGen/SDFPreview.visible = false
 			1:
-				$SDFGen/SDFVolume.visible = false
+				$SDFGen/SDFVolume.visible = true
 				$SDFGen/SDFPreview.visible = false
 			2:
 				$SDFGen/SDFVolume.visible = true

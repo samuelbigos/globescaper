@@ -17,10 +17,14 @@ uniform bool u_sdf_quintic_filter;
 
 varying vec3 WORLD_PIXEL;
 varying vec3 WORLD_NORMAL;
+varying vec3 SDF_TEX_SIZE;
+varying vec3 INV_SDF_TEX_SIZE;
 
 void vertex() {
 	WORLD_PIXEL = VERTEX;
 	WORLD_NORMAL = normalize(NORMAL);
+	SDF_TEX_SIZE = vec3(float(u_sdf_resolution));
+	INV_SDF_TEX_SIZE = 1.0 / SDF_TEX_SIZE;
 }
 
 vec4 _permute_4_s4_n0ise(vec4 x) {
@@ -41,58 +45,54 @@ vec4 _grad4_s4_n0ise(float j, vec4 ip) {
 	return p;
 }
 
-vec3 sample_sdf(vec3 world_pos) {	
-	ivec2 texture_res_i = textureSize(u_sdf, 0);
-	
+
+vec3 inner_sample_sdf(vec3 world_pos) {	
 	int z = int(world_pos.z * float(u_sdf_resolution));
 	int col = z % u_cols;
-	int row = z / u_cols;	
-	float y_scale = float(u_rows * u_sdf_resolution) / float(texture_res_i.y);	
+	int row = z / u_cols;
+	float y_scale = float(u_rows * u_sdf_resolution) / float(textureSize(u_sdf, 0).y);
 	float x = (float(col) / float(u_cols)) + world_pos.x / float(u_cols);
 	float y = (float(row) / float(u_rows)) + world_pos.y / float(u_rows);
-	
-	if (u_sdf_quintic_filter)
-	{
-		// Quintic filtering
-		// https://www.iquilezles.org/www/articles/texture/texture.htm
-		vec2 texture_res = vec2(float(texture_res_i.x), float(texture_res_i.y));
-		vec2 p = vec2(x, y);
-		p = p * texture_res + 0.5;
-
-	    vec2 i = floor(p);
-	    vec2 f = p - i;
-	    f = f*f*f*(f*(f*6.0-15.0)+10.0);
-	    p = i + f;
-	    p = (p - 0.5)/texture_res;
-		
-		return texture(u_sdf, p).rgb;
-	}
-	else
-	{
-		return texture(u_sdf, vec2(x, y)).rgb;
-	}
+	return texture(u_sdf, vec2(x, y)).rgb;
 }
 
-vec3 sample_sdf_1d(vec3 uv) {
+vec3 sample_sdf_trilinear(vec3 uv) {
+	vec3 pixel = uv * SDF_TEX_SIZE + vec3(0.5, 0.5, 0.0);
+	vec3 f = fract(pixel);
+	// Quintic filtering
+	// https://www.iquilezles.org/www/articles/texture/texture.htm
+	f = f*f*f*(f*(f*6.0-15.0)+10.0);
+	pixel = floor(pixel) / SDF_TEX_SIZE - vec3(INV_SDF_TEX_SIZE / 2.0);	
+	vec3 x0y0z0 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 0.0) * INV_SDF_TEX_SIZE);
+	vec3 x0y0z1 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 1.0) * INV_SDF_TEX_SIZE);
+	vec3 x0y1z0 = inner_sample_sdf(pixel + vec3(0.0, 1.0, 0.0) * INV_SDF_TEX_SIZE);
+	vec3 x0y1z1 = inner_sample_sdf(pixel + vec3(0.0, 1.0, 1.0) * INV_SDF_TEX_SIZE);
+	vec3 x1y0z0 = inner_sample_sdf(pixel + vec3(1.0, 0.0, 0.0) * INV_SDF_TEX_SIZE);
+	vec3 x1y0z1 = inner_sample_sdf(pixel + vec3(1.0, 0.0, 1.0) * INV_SDF_TEX_SIZE);
+	vec3 x1y1z0 = inner_sample_sdf(pixel + vec3(1.0, 1.0, 0.0) * INV_SDF_TEX_SIZE);
+	vec3 x1y1z1 = inner_sample_sdf(pixel + vec3(1.0, 1.0, 1.0) * INV_SDF_TEX_SIZE);
+	vec3 z1 = mix(x0y0z0, x0y0z1, f.z);
+	vec3 z2 = mix(x0y1z0, x0y1z1, f.z);
+	vec3 z3 = mix(x1y0z0, x1y0z1, f.z);
+	vec3 z4 = mix(x1y1z0, x1y1z1, f.z);
+	vec3 y1 = mix(z1, z2, f.y);
+	vec3 y2 = mix(z3, z4, f.y);	
+	return mix(y1, y2, f.x);
+}
+
+float sdf(vec3 uv) {
 	uv.x *= float(-1.0);
-	uv.z *= float(-1.0);	
+	uv.z *= float(-1.0);
 	uv /= (u_sdf_volume_radius * 2.0);
-	uv += 0.5;	
-	return sample_sdf(uv);
+	uv += 0.5;
+	return sample_sdf_trilinear(uv).r;
 }
 
 bool ray_hit(vec3 pos, out float dist) {
-	// hacky hacks
-	//vec3 SDF_SHADOW_OFFSET_BIAS = vec3(0.0, 0.01, 0.06); // 256
-	vec3 SDF_SHADOW_OFFSET_BIAS = vec3(0.0, 0.0, -0.42); // 384
-	pos += SDF_SHADOW_OFFSET_BIAS;
-	//origin.z *= 1.003; // 256
-	pos.z *= 1.003; // 384
-	
-	dist = sample_sdf_1d(pos).r;
+	dist = sdf(pos);
 	dist = dist * 2.0 - 1.0;
 	dist *= u_sdf_dist_mod;
-	return dist <= 0.0;
+	return dist <= 0.0001;
 }
 
 bool outofbounds(vec3 ray) {
@@ -106,23 +106,19 @@ bool outofbounds(vec3 ray) {
 
 float shadow_calc(vec3 origin, vec3 dir, float k) {
 	float dist;
-	ray_hit(origin, dist);
 	dir = normalize(dir);
 	float res = 1.0;
-	float t = dist + 0.1;
+	float t = 0.1;
 	vec3 ray = origin + dir * t;
-	for (int i = 0; i < 128; i++)
-	{
-		if (ray_hit(ray, dist))
-		{
+	for (int i = 0; i < 64; i++) {
+		if (ray_hit(ray, dist)) {
 			return 0.0;
 		}
-		if (outofbounds(ray))
-		{
+		if (outofbounds(ray)) {
 			break;
 		}
-		res = min(res, k * dist / t);
-		t += dist;
+		res = min(res, k * dist / min(t, 1.0));
+		t += max(0.01, dist);
 		ray = origin + dir * t;
 	}
 	return res;
@@ -131,7 +127,7 @@ float shadow_calc(vec3 origin, vec3 dir, float k) {
 float ao_calc(vec3 target) {
 	float dist;
 	ray_hit(target, dist);
-	return dist;
+	return clamp(dist, 0.0, 1.0);
 }
 
 float simplex_4d_noise(vec4 v) {
@@ -299,37 +295,21 @@ void fragment() {
 		water_col += wave_shore;
 	}
 	
-	// LIGHTING	
 	// calculate shadow
 	vec3 ray_origin = WORLD_PIXEL + WORLD_NORMAL * 0.1;
-	vec3 ray_dir = normalize(u_sun_pos - WORLD_PIXEL);
-	vec3 oy = normalize(WORLD_PIXEL - dFdy(WORLD_PIXEL)) * 0.02;
-	vec3 ox = normalize(WORLD_PIXEL - dFdx(WORLD_PIXEL)) * 0.02;
+	vec3 ray_dir = normalize(u_sun_pos - WORLD_PIXEL);	
+	vec3 oy = normalize(WORLD_PIXEL - dFdy(WORLD_PIXEL)) * 0.01;
+	vec3 ox = normalize(WORLD_PIXEL - dFdx(WORLD_PIXEL)) * 0.01;
 	float s = 0.0;
-	for (int x = -1; x < 2; x++)
-		for (int y = -1; y < 2; y++)
+	for (int x = -1; x < 2; x++) {
+		for (int y = -1; y < 2; y++) {
 			s += shadow_calc(ray_origin + oy * float(y) + ox * float(x), ray_dir, 1.0);
-	s /= 1.0;
-	
-	// ao
-	float ao = 0.0;
-	for (int x = -1; x < 2; x++)
-	{
-		for (int y = -1; y < 2; y++)
-		{
-			for (int z = -1; z < 2; z++)
-			{
-				float dist = 0.1;
-				vec3 target = ray_origin; + WORLD_NORMAL * dist * 10.0;
-				target += normalize(vec3(float(x), 0.0, 0.0)) * dist;
-				target += normalize(vec3(0.0, float(y), 0.0)) * dist;
-				target += normalize(vec3(0.0, 0.0, float(z))) * dist;
-				ao += ao_calc(target);
-			}
 		}
 	}
-	ao /= 27.0;
-	ao = pow(ao, 5.0);
+	s /= 9.0;
+	
+	// ao
+	float ao = ao_calc(WORLD_PIXEL + WORLD_NORMAL * 1.1);
 	
 	// reflection
 	vec3 cam_ray = normalize(WORLD_PIXEL - u_camera_pos);
