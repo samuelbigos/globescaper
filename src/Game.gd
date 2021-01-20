@@ -4,17 +4,18 @@ class_name Game
 
 # exposed
 export var land_material : Material
-export var water_material : Material
 export var water_deep_colour : Color
 export var water_shallow_colour : Color
 export var water_height = 0.5
 export var camera_follow := false
 export var wfc_auto := false
+export var SunAutoRotate := false
 
 # members
 var _cell_idx_to_surface = {}
 var _cell_idx_to_prototype = {}
 var _debug_display_mode = 0
+var _water_material : Material
 
 onready var _camera = get_node("HGimbal")
 onready var _globe_wireframe = get_node("GlobeWireframe")
@@ -38,19 +39,14 @@ func _ready() -> void:
 	_update_gui();
 	
 func _update_gui():
-	$VSplitContainer/HBoxContainer/QuinticFilteringValue.text = "%d" % [int(_sdf._sdf_quintic_filter)]
+	pass
 	
 func _setup_meshes():
-	var ocean_mesh = ArrayMesh.new()
-	var ocean_mesh_array = _icosphere.get_array_mesh()
-	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
-		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
-	
-	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
-	ocean_mesh.surface_set_material(0, water_material)
-	water_material.set_shader_param("u_deep_colour", water_deep_colour)
-	water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
-	_globe_ocean.set_mesh(ocean_mesh)
+	_water_material = _globe_ocean.mesh.material
+	_water_material.set_shader_param("u_deep_colour", water_deep_colour)
+	_water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
+	_globe_ocean.mesh.radius = _icosphere.radius + water_height
+	_globe_ocean.mesh.height = _globe_ocean.mesh.radius * 2.0
 	
 #	var globe_wireframe_mesh = ArrayMesh.new()
 #	var globe_wireframe_array = _icosphere.get_array_mesh(true)
@@ -66,9 +62,9 @@ func _process(delta: float) -> void:
 	_sdf.set_sdf_params_on_mat(land_material)
 	land_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
-	water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
-	_sdf.set_sdf_params_on_mat(water_material)
-	water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
+	_water_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
+	_sdf.set_sdf_params_on_mat(_water_material)
+	_water_material.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	
 	#_atmosphere.visible = true
 	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
@@ -77,7 +73,8 @@ func _process(delta: float) -> void:
 	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
 	
-	$SunGimbal.rotation.y += delta * PI * 0.1
+	if SunAutoRotate:
+		$SunGimbal.rotation.y += delta * PI * 0.1
 	
 	# debug input stuff
 	if Input.is_action_just_released("spacebar"):

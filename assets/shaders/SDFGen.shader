@@ -15,13 +15,11 @@ uniform bool u_use_bounding_sphere;
 uniform vec3 u_bound_origin;
 uniform float u_bound_radius;
 
-float dot2( in vec3 v ) 
-{ 
+float dot2( in vec3 v)  { 
 	return dot(v,v); 
 }
 
-float ud_triangle(vec3 p, vec3 a, vec3 b, vec3 c)
-{
+float ud_triangle(vec3 p, vec3 a, vec3 b, vec3 c) {
 	vec3 ba = b - a; vec3 pa = p - a;
 	vec3 cb = c - b; vec3 pb = p - b;
 	vec3 ac = a - c; vec3 pc = p - c;
@@ -39,14 +37,12 @@ float ud_triangle(vec3 p, vec3 a, vec3 b, vec3 c)
 		dot(nor,pa)*dot(nor,pa)/dot2(nor);
 }
 
-vec2 mesh_idx_to_img_uv(int idx, vec2 tex_size)
-{
+vec2 mesh_idx_to_img_uv(int idx, vec2 tex_size) {
 	vec2 uv = vec2(float(idx % int(tex_size.x)), float(idx / int(tex_size.y)));
 	return uv / u_mesh_tex_size;
 }
 
-vec3 sdf_uv_to_world_pos(vec2 uv)
-{
+vec3 sdf_uv_to_world_pos(vec2 uv) {
 	vec3 pos = vec3(uv.xy, 0.0);
 	pos.x = fract(pos.x * float(u_cols));
 	pos.y = fract(pos.y * float(u_rows));
@@ -59,8 +55,7 @@ vec3 sdf_uv_to_world_pos(vec2 uv)
 	return pos;
 }
 
-int intersect_tri(vec3 ray_origin, vec3 ray_dir, vec3 v0, vec3 v1, vec3 v2)
-{
+int intersect_tri(vec3 ray_origin, vec3 ray_dir, vec3 v0, vec3 v1, vec3 v2) {
 	float EPSILON = 0.00001;
 	
 	float a,f,u,v;
@@ -94,8 +89,7 @@ int intersect_tri(vec3 ray_origin, vec3 ray_dir, vec3 v0, vec3 v1, vec3 v2)
         return 0;
 }
 
-void fragment() 
-{
+void fragment() {
 	// flip x when writing the sdf because reasons
 	vec3 uv = sdf_uv_to_world_pos(vec2(1.0 - UV.x, UV.y));
 	
@@ -159,7 +153,8 @@ void fragment()
 		{
 			float prev_dist = current.r * 2.0 - 1.0;
 			float final = min(prev_dist, dist) * 0.5 + 0.5;
-			COLOR = vec4(final, step(final, 0.5), 0.0, 1.0);
+			COLOR = vec4(final, 0.0, 0.0, 1.0);
+			//COLOR = vec4(final, step(final, 0.5), 0.0, 1.0);
 		}
 	}
 	else

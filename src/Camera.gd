@@ -1,6 +1,8 @@
 extends Spatial
 
 
+export var AutoRotate := false
+
 var _velocity := Vector2()
 var _mouse_position := Vector2()
 var _follow_target := false
@@ -27,7 +29,8 @@ func update(delta: float) -> void:
 	elif Input.is_action_just_released("mousewheel_down"):
 		_camera.transform.origin.z += 1.0
 		
-	#_velocity.x = -20.0 * delta
+	if AutoRotate:
+		_velocity.x = -20.0 * delta
 	#_v_gimbal.rotation.x = -0.6
 	
 	if _follow_target:

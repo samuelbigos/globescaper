@@ -21,6 +21,7 @@ uniform float u_scattering_strength = 1.0;
 uniform vec3 u_scattering_wavelengths = vec3(100.0);
 uniform float u_density_falloff = 1.0;
 uniform float u_volumetric_shadow_scale = 10.0;
+uniform bool u_volumetric_shadows = false;
 
 varying vec3 WORLD_PIXEL;
 varying vec3 SDF_TEX_SIZE;
@@ -32,53 +33,39 @@ void vertex() {
 	INV_SDF_TEX_SIZE = 1.0 / SDF_TEX_SIZE;
 }
 
-vec3 inner_sample_sdf(vec3 world_pos) {	
+float inner_sample_sdf(vec3 world_pos) {
 	int z = int(world_pos.z * float(u_sdf_resolution));
 	int col = z % u_cols;
 	int row = z / u_cols;
 	float y_scale = float(u_rows * u_sdf_resolution) / float(textureSize(u_sdf, 0).y);
 	float x = (float(col) / float(u_cols)) + world_pos.x / float(u_cols);
 	float y = (float(row) / float(u_rows)) + world_pos.y / float(u_rows);
-	return texture(u_sdf, vec2(x, y)).rgb;
+	return texture(u_sdf, vec2(x, y)).r;
 }
 
-vec3 sample_sdf_trilinear(vec3 uv) {
-	vec3 pixel = uv * SDF_TEX_SIZE + vec3(0.5, 0.5, 0.0);
-	vec3 f = fract(pixel);
-	// Quintic filtering
-	// https://www.iquilezles.org/www/articles/texture/texture.htm
-	f = f*f*f*(f*(f*6.0-15.0)+10.0);
-	pixel = floor(pixel) / SDF_TEX_SIZE - vec3(INV_SDF_TEX_SIZE / 2.0);	
-	vec3 x0y0z0 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 0.0) * INV_SDF_TEX_SIZE);
-	vec3 x0y0z1 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 1.0) * INV_SDF_TEX_SIZE);
-	vec3 x0y1z0 = inner_sample_sdf(pixel + vec3(0.0, 1.0, 0.0) * INV_SDF_TEX_SIZE);
-	vec3 x0y1z1 = inner_sample_sdf(pixel + vec3(0.0, 1.0, 1.0) * INV_SDF_TEX_SIZE);
-	vec3 x1y0z0 = inner_sample_sdf(pixel + vec3(1.0, 0.0, 0.0) * INV_SDF_TEX_SIZE);
-	vec3 x1y0z1 = inner_sample_sdf(pixel + vec3(1.0, 0.0, 1.0) * INV_SDF_TEX_SIZE);
-	vec3 x1y1z0 = inner_sample_sdf(pixel + vec3(1.0, 1.0, 0.0) * INV_SDF_TEX_SIZE);
-	vec3 x1y1z1 = inner_sample_sdf(pixel + vec3(1.0, 1.0, 1.0) * INV_SDF_TEX_SIZE);
-	vec3 z1 = mix(x0y0z0, x0y0z1, f.z);
-	vec3 z2 = mix(x0y1z0, x0y1z1, f.z);
-	vec3 z3 = mix(x1y0z0, x1y0z1, f.z);
-	vec3 z4 = mix(x1y1z0, x1y1z1, f.z);
-	vec3 y1 = mix(z1, z2, f.y);
-	vec3 y2 = mix(z3, z4, f.y);	
-	return mix(y1, y2, f.x);
+float sample_sdf_trilinear(vec3 uv) {
+	vec3 pixel = uv;
+	pixel.z = uv.z * SDF_TEX_SIZE.z;
+	float f = fract(pixel.z);
+	pixel.z = floor(pixel.z) / SDF_TEX_SIZE.z - float(INV_SDF_TEX_SIZE.z / 2.0);	
+	float x0y0z0 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 0.0) * INV_SDF_TEX_SIZE);
+	float x0y0z1 = inner_sample_sdf(pixel + vec3(0.0, 0.0, 1.0) * INV_SDF_TEX_SIZE);
+	return mix(x0y0z0, x0y0z1, f);
 }
 
 float sdf(vec3 uv) {
 	uv.x *= float(-1.0);
 	uv.z *= float(-1.0);
 	uv /= (u_sdf_volume_radius * 2.0);
-	uv += 0.5;
-	return sample_sdf_trilinear(uv).r;
+	uv += 0.5;	
+	return sample_sdf_trilinear(uv);
 }
 
 bool ray_hit(vec3 pos, out float dist) {
 	dist = sdf(pos);
 	dist = dist * 2.0 - 1.0;
 	dist *= u_sdf_dist_mod;
-	return dist <= 0.0001;
+	return dist <= 0.001;
 }
 
 bool outofbounds(vec3 ray) {
@@ -185,7 +172,7 @@ void fragment() {
 	if (intersect(origin, ray, u_atmosphere_radius, u_planet_centre, aA, aB)) {
 		// check if ray hits planet using sdf
 		vec3 hit;
-		float res;
+		float res = 1.0;
 		if (hit_planet(origin, ray, aA, hit, res)) {
 			aB = distance(origin, hit);
 		}
