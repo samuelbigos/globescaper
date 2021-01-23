@@ -25,6 +25,7 @@ public:
     Array constraint_bot;
     int layer;
     Array neighbors;
+    Vector3 position;
 };
 
 }

@@ -33,7 +33,7 @@ shader_param/u_cols = null
 shader_param/u_sdf_quintic_filter = null
 shader_param/u_texture = ExtResource( 13 )
 
-[sub_resource type="ShaderMaterial" id=19]
+[sub_resource type="ShaderMaterial" id=2]
 shader = ExtResource( 3 )
 shader_param/u_deep_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_shallow_colour = Plane( 1, 1, 1, 1 )
@@ -46,15 +46,12 @@ shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_sdf_quintic_filter = null
 
-[sub_resource type="SphereMesh" id=20]
-material = SubResource( 19 )
-
-[sub_resource type="ShaderMaterial" id=4]
+[sub_resource type="ShaderMaterial" id=3]
 shader = ExtResource( 4 )
 
-[sub_resource type="ArrayMesh" id=5]
+[sub_resource type="ArrayMesh" id=4]
 
-[sub_resource type="ShaderMaterial" id=6]
+[sub_resource type="ShaderMaterial" id=5]
 shader = ExtResource( 19 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -69,19 +66,19 @@ shader_param/u_atmosphere_radius = 14.092
 shader_param/u_planet_radius = 11.069
 shader_param/u_atmosphere_samples = 20
 shader_param/u_optical_samples = 5
-shader_param/u_sun_intensity = 0.131
-shader_param/u_scattering_strength = 3.612
+shader_param/u_sun_intensity = 0.06
+shader_param/u_scattering_strength = 1.563
 shader_param/u_scattering_wavelengths = Vector3( 700, 530, 440 )
-shader_param/u_density_falloff = 2.441
-shader_param/u_volumetric_shadow_scale = 15.509
+shader_param/u_density_falloff = 2.216
+shader_param/u_volumetric_shadow_scale = 14.17
 shader_param/u_volumetric_shadows = false
 
-[sub_resource type="SphereMesh" id=7]
-material = SubResource( 6 )
+[sub_resource type="SphereMesh" id=6]
+material = SubResource( 5 )
 radius = 20.0
 height = 40.0
 
-[sub_resource type="ShaderMaterial" id=8]
+[sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 12 )
 shader_param/u_mesh_tex_size = null
 shader_param/u_num_tris = null
@@ -95,10 +92,10 @@ shader_param/u_use_bounding_sphere = null
 shader_param/u_bound_origin = null
 shader_param/u_bound_radius = null
 
-[sub_resource type="ViewportTexture" id=9]
+[sub_resource type="ViewportTexture" id=8]
 viewport_path = NodePath("SDFGen/Viewport")
 
-[sub_resource type="ShaderMaterial" id=10]
+[sub_resource type="ShaderMaterial" id=9]
 shader = ExtResource( 14 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -107,25 +104,30 @@ shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_cam_pos = null
 
-[sub_resource type="CubeMesh" id=11]
-material = SubResource( 10 )
+[sub_resource type="CubeMesh" id=10]
+material = SubResource( 9 )
 
-[sub_resource type="SphereMesh" id=12]
+[sub_resource type="SphereMesh" id=11]
 radius = 5.0
 height = 10.0
 
-[sub_resource type="SpatialMaterial" id=13]
+[sub_resource type="SpatialMaterial" id=12]
 flags_unshaded = true
 albedo_color = Color( 1, 0.843137, 0, 1 )
 
-[sub_resource type="ShaderMaterial" id=14]
+[sub_resource type="ShaderMaterial" id=13]
 shader = ExtResource( 8 )
 
-[sub_resource type="ShaderMaterial" id=15]
+[sub_resource type="ShaderMaterial" id=14]
 shader = ExtResource( 18 )
 
-[sub_resource type="ShaderMaterial" id=16]
+[sub_resource type="ShaderMaterial" id=15]
 shader = ExtResource( 9 )
+
+[sub_resource type="SpatialMaterial" id=16]
+flags_transparent = true
+flags_unshaded = true
+albedo_color = Color( 0, 0, 0, 0.780392 )
 
 [sub_resource type="SphereMesh" id=17]
 radial_segments = 16
@@ -140,29 +142,30 @@ land_material = SubResource( 1 )
 water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
 water_shallow_colour = Color( 0.286275, 0.894118, 1, 1 )
 water_height = 1.0
+MaxNewMeshesPerFrame = 1
+
+[node name="GlobeOcean" type="MeshInstance" parent="."]
+material_override = SubResource( 2 )
+
+[node name="GlobeWireframe" type="MeshInstance" parent="."]
+visible = false
+material_override = SubResource( 3 )
+
+[node name="GlobeLand" type="MeshInstance" parent="."]
+mesh = SubResource( 4 )
+
+[node name="Atmosphere" type="MeshInstance" parent="."]
+mesh = SubResource( 6 )
+material/0 = null
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
+MinDistance = 20.0
 
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30.3436 )
-
-[node name="GlobeOcean" type="MeshInstance" parent="."]
-mesh = SubResource( 20 )
-material/0 = null
-
-[node name="GlobeWireframe" type="MeshInstance" parent="."]
-visible = false
-material_override = SubResource( 4 )
-
-[node name="GlobeLand" type="MeshInstance" parent="."]
-mesh = SubResource( 5 )
-
-[node name="Atmosphere" type="MeshInstance" parent="."]
-mesh = SubResource( 7 )
-material/0 = null
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -175,7 +178,7 @@ render_target_format_override = 3
 render_target_update_mode = 0
 
 [node name="Rect" type="TextureRect" parent="SDFGen/Viewport"]
-material = SubResource( 8 )
+material = SubResource( 7 )
 margin_right = 40.0
 margin_bottom = 40.0
 texture = ExtResource( 11 )
@@ -185,7 +188,7 @@ expand = true
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-texture = SubResource( 9 )
+texture = SubResource( 8 )
 expand = true
 stretch_mode = 1
 __meta__ = {
@@ -194,7 +197,7 @@ __meta__ = {
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
 visible = false
-mesh = SubResource( 11 )
+mesh = SubResource( 10 )
 material/0 = null
 
 [node name="SunGimbal" type="Spatial" parent="."]
@@ -202,8 +205,8 @@ transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
 transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 0, 0 )
-mesh = SubResource( 12 )
-material/0 = SubResource( 13 )
+mesh = SubResource( 11 )
+material/0 = SubResource( 12 )
 
 [node name="VSplitContainer" type="VSplitContainer" parent="."]
 visible = false
@@ -241,13 +244,18 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
+grid_height = 4
 cell_height = 1.0
-possibility_cube_material = SubResource( 14 )
-voxel_inside_material = SubResource( 15 )
-voxel_outside_material = SubResource( 16 )
+possibility_cube_material = SubResource( 13 )
+voxel_inside_material = SubResource( 14 )
+voxel_outside_material = SubResource( 15 )
+
+[node name="GridMesh" type="MeshInstance" parent="VoxelGrid"]
+material_override = SubResource( 16 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 17 )
+subdivisions = 2
 
 [node name="PrototypeDB" type="Node" parent="."]
 script = ExtResource( 6 )

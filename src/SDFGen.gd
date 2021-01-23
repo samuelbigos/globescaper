@@ -23,7 +23,6 @@ func _ready():
 	var rows = int(ceil(float(_sdf_resolution) / per_row))	
 	
 	var res = Vector2(cols * _sdf_resolution, rows * _sdf_resolution)
-	print(res)
 	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
 	_viewport.size = res
 	_viewport.get_node("Rect").rect_size = res

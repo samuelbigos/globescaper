@@ -11,6 +11,7 @@ void GDCell::_register_methods() {
     register_property<GDCell, Array>("constraint_bot", &GDCell::constraint_bot, Array());
     register_property<GDCell, int>("layer", &GDCell::layer, 0);
     register_property<GDCell, Array>("neighbors", &GDCell::neighbors, Array());
+    register_property<GDCell, Vector3>("position", &GDCell::position, Vector3());
 }
 
 GDCell::GDCell() {

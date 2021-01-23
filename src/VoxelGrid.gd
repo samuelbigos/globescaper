@@ -30,18 +30,18 @@ var _grid_cells = [] # 1D
 var _grid_voxels = [] # 2D
 var _grid_verts = [] # 1D
 
-var _cell_collision_area_to_idx = {}
-
 # visualisations
 var _possibility_cubes = []
 var _voxel_spheres = [] # 2D
+
+onready var _grid_mesh = get_node("GridMesh")
 
 
 func get_cells(): return _grid_cells
 func get_verts(): return _grid_verts
 func get_voxels(): return _grid_voxels
 
-func create(var icosphere_verts, var icosphere_polys, var radius: float):
+func create(var icosphere_verts, var icosphere_polys, var radius: float, var grid_radius: float):
 	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
 	# with a 2D array
 	_grid_cells = []
@@ -124,22 +124,6 @@ func create(var icosphere_verts, var icosphere_polys, var radius: float):
 			var voxel_top = _grid_voxels[base_voxel_idx][cell.layer + 1]
 			voxel_bot.connected_cells.append(cell)
 			voxel_top.connected_cells.append(cell)
-			
-	# setup collision areas for voxel picking
-	for v in range(0, _grid_voxels.size()):
-		for h in range(0, _grid_voxels[v].size()):
-			var voxel = _grid_voxels[v][h] as Voxel
-#			var area = Area.new()
-#			var polygon = SphereShape.new()
-#			var length = 0.0
-#			for cell in voxel.connected_cells:
-#				length += _grid_verts[voxel.vert].distance_to(cell.centre)
-#
-#			polygon.radius = length / voxel.connected_cells.size()
-#			var owner_id = area.create_shape_owner(self)
-#			area.shape_owner_add_shape(owner_id, polygon)
-#			add_child(area)
-#			_cell_collision_area_to_idx[area] = _grid_cells.size() - 1
 					
 	# add possibility cubes
 	if wfc_visualisation:
@@ -176,7 +160,7 @@ func create(var icosphere_verts, var icosphere_polys, var radius: float):
 			for idx in indices:
 				st.add_index(idx)
 			
-			cube.set_mesh(st.commit())		
+			cube.set_mesh(st.commit())
 			cube.set_surface_material(0, possibility_cube_material)
 			cube.cast_shadow = false
 			_possibility_cubes.append(cube)
@@ -184,20 +168,46 @@ func create(var icosphere_verts, var icosphere_polys, var radius: float):
 			cube.transform.origin = (_grid_cells[i].centre.normalized() * height)
 			add_child(cube)
 			
-func create_collision_volume_for_voxel():
-	pass
-#	# create the collision area for the cell for mouse picking
-#	var area = Area.new()
-#	var polygon = ConvexPolygonShape.new()
-#	var polygon_verts = PoolVector3Array()
-#	for v in range(0, 4):
-#		polygon_verts.append(_grid_verts[cell.v_bot[v - 1]])
-#		polygon_verts.append(_grid_verts[cell.v_top[v - 1]])
-#	polygon.points = polygon_verts
-#	var owner_id = area.create_shape_owner(self)
-#	area.shape_owner_add_shape(owner_id, polygon)
-#	add_child(area)
-#	_cell_collision_area_to_idx[area] = _grid_cells.size() - 1
+	create_grid_mesh(grid_radius)
+			
+func create_grid_mesh(var grid_radius):
+	var st = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var subdivisions = 1
+	for cell in _grid_cells:
+		if cell.layer > 0:
+			continue
+		
+		for v in range(0, 4):
+			var corners = []
+			corners.append(_grid_verts[cell.v_bot[v]])
+			corners.append(_grid_verts[cell.v_bot[(v + 1) % 4]])
+			corners.append(_grid_verts[cell.v_bot[(v + 2) % 4]])
+			corners.append(_grid_verts[cell.v_bot[(v + 3) % 4]])
+			
+			var width_scale = 1.0 / corners[3].distance_to(corners[0])
+			var width = width_scale * 0.025
+			
+			for i in range(1, subdivisions + 1):
+				var prev_step = float(i - 1) / float(subdivisions) / 2.0;
+				var step = float(i) / float(subdivisions) / 2.0;
+				
+				var top = 0.5 + width
+				var bot = 0.5 - width
+				st.add_vertex(interpolate_corners(corners, step, top).normalized() * grid_radius)
+				st.add_vertex(interpolate_corners(corners, prev_step, top).normalized() * grid_radius)
+				st.add_vertex(interpolate_corners(corners, prev_step, bot).normalized() * grid_radius)
+				
+				st.add_vertex(interpolate_corners(corners, prev_step, bot).normalized() * grid_radius)
+				st.add_vertex(interpolate_corners(corners, step, bot).normalized() * grid_radius)
+				st.add_vertex(interpolate_corners(corners, step, top).normalized() * grid_radius)
+			
+	_grid_mesh.set_mesh(st.commit())
+	
+func interpolate_corners(var corners, var x: float, var y: float) -> Vector3:
+	var new_x1 = lerp(corners[0], corners[1], x)
+	var new_x2 = lerp(corners[3], corners[2], x)
+	return lerp(new_x1, new_x2, y)
 			
 func intersect(var ray_origin: Vector3, var ray_dir: Vector3) -> Voxel:
 	# find the voxel on each layer closest to the picking ray.
@@ -252,26 +262,6 @@ func _create_voxel_sphere(var origin: Vector3, var inside: bool):
 	else:
 		voxel_sphere.get_mesh().surface_set_material(0, voxel_outside_material)
 	return voxel_sphere
-				
-#func _update_voxel_space(var voxel, var inside = false):
-#	var quad = _icosphere_polys[_grid_cells[i].quad] as Icosphere.Quad
-#	for v in range(0, quad.v.size()):
-#		_grid_voxels[quad.v[v]][_grid_cells[i].layer] = inside
-#
-#		if _grid_cells[i].layer < grid_height - 1:
-#			inside = prototype.corners_top[v] != 0
-#			_grid_voxels[quad.v[v]][_grid_cells[i].layer + 1] = inside
-#
-#		if voxel_space_visualisation:
-#			var sphere = _voxel_spheres[quad.v[v]][_grid_cells[i].layer] as MeshInstance
-#			var pos = _icosphere_verts[quad.v[v]].normalized() * (radius + (cell_height * _grid_cells[i].layer))
-#			sphere.transform.origin = pos
-#			var size = 0.05
-#			sphere.scale = Vector3(size, size, size)
-#			if inside:
-#				sphere.get_mesh().surface_set_material(0, voxel_inside_material)
-#			else:
-#				sphere.get_mesh().surface_set_material(0, voxel_outside_material)
 
 #func _update_possibility_cube(cell, size):
 #	if size == 1 or _possibility_cubes.size() <= cell or _possibility_cubes[cell] == null:

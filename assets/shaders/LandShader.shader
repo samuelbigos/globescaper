@@ -260,7 +260,7 @@ void fragment() {
 	// combine terms
 	vec3 col = texture(u_texture, UV).rgb;
 	float brightness = 1.0;
-	float ambient = 0.0;
+	float ambient = 0.025;
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness; // global sun brightness

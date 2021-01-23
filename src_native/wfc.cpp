@@ -7,13 +7,8 @@ void WFC::_register_methods() {
     register_method("setup_wfc", &WFC::setup_wfc);
     register_method("step", &WFC::step);
     register_method("get_wave", &WFC::get_wave);
-    register_method("_wfc_collapse", &WFC::_wfc_collapse);
-    register_method("_wfc_propagate", &WFC::_wfc_propagate);
-    register_method("_wfc_propagate", &WFC::_wfc_propagate);
-    register_method("_wfc_calc_entropy", &WFC::_wfc_calc_entropy);
-    register_method("_wfc_compatible", &WFC::_wfc_compatible);
-    register_method("_wfc_ban", &WFC::_wfc_ban);
-    register_method("_wfc_observe", &WFC::_wfc_observe);
+    register_method("reset", &WFC::reset);
+    register_method("add_constraint", &WFC::add_constraint);
 }
 
 WFC::WFC() {
@@ -30,11 +25,11 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
     _wave = new Array2D<int16_t>(cells.size(), prototypes.size());
     _collapsed.resize(cells.size());
     _entropy.resize(cells.size());
+    _cell_positions.resize(cells.size());
     _wave_final = Array();
 
     // create prototype array
-    for (int i = 0; i < prototypes.size(); i++)
-    {
+    for (int i = 0; i < prototypes.size(); i++) {
         GDPrototype* prot = Object::cast_to<GDPrototype>(prototypes[i]);
         _prototypes->get(i, PROT_TOP) = prot->top_slot;
         _prototypes->get(i, PROT_BOT) = prot->bot_slot;
@@ -50,8 +45,7 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
     }
 
     // create cell arrays
-    for (int i = 0; i < cells.size(); i++)
-    {
+    for (int i = 0; i < cells.size(); i++) {
         GDCell* cell = Object::cast_to<GDCell>(cells[i]);
         _cells->get(i, CELL_TOP_0) = cell->top[0];
         _cells->get(i, CELL_TOP_1) = cell->top[1];
@@ -65,52 +59,15 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
 
         for (int n = 0; n < 6; n++) {
             _cell_neighbors->get(i, n) = cell->neighbors[n];
-        }    
+        }
+
+        _cell_positions[i] = cell->position;
         
         // pre-bake contraints
         int match_count = 0;
         for (int p = 0; p < prototypes.size(); p++) {
             if (cell->constrained) {
-                bool match = true;
-                _wave->get(i, p) = 0;
-                //printf("%d - %d\n", uint8_t(_prototypes->get(p, PROT_BOT)), (uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1);
-                // bot
-                if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_bot[0])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 1) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_bot[1])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 2) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_bot[2])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 3) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_bot[3])) {
-                    match = false;
-                }
-                // top
-                if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 0) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_top[0])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 1) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_top[1])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 2) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_top[2])) {
-                    match = false;
-                }
-                if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 3) & 1) 
-                    != static_cast<uint8_t>(cell->constraint_top[3])) {
-                    match = false;
-                }
-                if (match) {
-                    _wave->get(i, p) = 1;
-                } 
+                _wave->get(i, p) = (int)_match(p, cell->constraint_top, cell->constraint_bot);
             }
             else {
                 if (cell->layer == 0) {
@@ -147,8 +104,71 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
         _collapsed[i] = false;
         _wave_final.append(-1);
     }
+    _cached_wave = _wave;
+    _first_collapse = 0;
 
     srand(seed);
+}
+
+void WFC::reset() {
+    _wave = _cached_wave;
+    _wave_final.clear();
+    for (int i = 0; i < _cells->height; i++) {
+        _entropy[i] = _wfc_calc_entropy_distance(i);
+        _collapsed[i] = false;
+        _wave_final.append(-1);
+    }
+}
+
+void WFC::add_constraint(int cell_idx, Array top, Array bot) {
+    for (int p = 0; p < _prototypes->height; p++) {
+        _wave->get(cell_idx, p) = (int)_match(p, top, bot);
+        _cached_wave->get(cell_idx, p) = (int)_match(p, top, bot);
+    }
+    _first_collapse = cell_idx;
+}
+
+bool WFC::_match(int p, Array top, Array bot) {
+    bool match = true;
+    //printf("%d - %d\n", uint8_t(_prototypes->get(p, PROT_BOT)), (uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1);
+    // bot
+    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1) 
+        != static_cast<uint8_t>(bot[0])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 1) & 1) 
+        != static_cast<uint8_t>(bot[1])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 2) & 1) 
+        != static_cast<uint8_t>(bot[2])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 3) & 1) 
+        != static_cast<uint8_t>(bot[3])) {
+        match = false;
+    }
+    // top
+    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 0) & 1) 
+        != static_cast<uint8_t>(top[0])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 1) & 1) 
+        != static_cast<uint8_t>(top[1])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 2) & 1) 
+        != static_cast<uint8_t>(top[2])) {
+        match = false;
+    }
+    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 3) & 1) 
+        != static_cast<uint8_t>(top[3])) {
+        match = false;
+    }
+    if (match) {
+        return true;
+    } 
+    return false;
 }
 
 int WFC::step(Array wave_final) {
@@ -285,15 +305,15 @@ bool WFC::_wfc_propagate() {
                 printf("IMPOSSIBRU!\n");
                 return false;
             }
-
-            _entropy[n_cell] = _wfc_calc_entropy(n_cell);
+            
+            _entropy[n_cell] = _wfc_calc_entropy_distance(n_cell);
             _stack.push_back(n_cell);
         }
     }
     return true;
 }
 
-double WFC::_wfc_calc_entropy(int cell) {
+double WFC::_wfc_calc_entropy_shannon(int cell) {
     double sum_of_weights = 0.0;
     double sum_of_weights_log_weights = 0.0;
     for (int i = 0; i < _prototypes->height; i++) {
@@ -304,6 +324,11 @@ double WFC::_wfc_calc_entropy(int cell) {
         sum_of_weights_log_weights += p * log(p);
     }
     double entropy = log(sum_of_weights) - sum_of_weights_log_weights / sum_of_weights;
+    return entropy;
+}
+
+double WFC::_wfc_calc_entropy_distance(int cell) {
+    double entropy = _cell_positions[cell].distance_to(_cell_positions[_first_collapse]);
     return entropy;
 }
 

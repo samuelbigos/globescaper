@@ -10,6 +10,8 @@ export var water_height = 0.5
 export var camera_follow := false
 export var wfc_auto := false
 export var SunAutoRotate := false
+export var MaxWFCStepsPerFrame = 10
+export var MaxNewMeshesPerFrame = 3
 
 # members
 var _cell_idx_to_surface = {}
@@ -31,9 +33,9 @@ onready var _atmosphere = get_node("Atmosphere")
 
 func _ready() -> void:
 	_icosphere.generate()
-	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius)
+	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + water_height + 0.01)
 	_prototype_db.load_prototypes()
-	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
+	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
 	
 	_setup_meshes()
 	_update_gui();
@@ -42,18 +44,29 @@ func _update_gui():
 	pass
 	
 func _setup_meshes():
-	_water_material = _globe_ocean.mesh.material
+	var ocean_mesh = ArrayMesh.new()
+	var ocean_mesh_array = _icosphere.get_array_mesh()
+	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+	
+	_water_material = _globe_ocean.material_override
+	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
 	_water_material.set_shader_param("u_deep_colour", water_deep_colour)
 	_water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
-	_globe_ocean.mesh.radius = _icosphere.radius + water_height
-	_globe_ocean.mesh.height = _globe_ocean.mesh.radius * 2.0
+	_globe_ocean.set_mesh(ocean_mesh)
 	
-#	var globe_wireframe_mesh = ArrayMesh.new()
-#	var globe_wireframe_array = _icosphere.get_array_mesh(true)
-#	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-#		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
-#	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-#	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+#	_water_material = _globe_ocean.mesh.material
+#	_water_material.set_shader_param("u_deep_colour", water_deep_colour)
+#	_water_material.set_shader_param("u_shallow_colour", water_shallow_colour)
+#	_globe_ocean.mesh.radius = _icosphere.radius + water_height
+#	_globe_ocean.mesh.height = _globe_ocean.mesh.radius * 2.0
+	
+	var globe_wireframe_mesh = ArrayMesh.new()
+	var globe_wireframe_array = _icosphere.get_array_mesh(true)
+	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
+		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
+	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
 func _process(delta: float) -> void:
 	_camera.update(delta)
@@ -95,11 +108,17 @@ func _process(delta: float) -> void:
 	# process wfc here because gdnative doesn't like being called from anywhere else
 	if not _wfc._wfc_finished:
 		var added_mesh = false
-		while not added_mesh:
+		var wfc_steps = MaxWFCStepsPerFrame
+		var meshes_added = MaxNewMeshesPerFrame
+		while meshes_added > 0 and wfc_steps > 0:
 			var last_wfc = _wfc._wfc_gd.step()
-			added_mesh = on_wfc_cell_collapsed(last_wfc, _wfc._wfc_gd.get_wave()[last_wfc])
+			wfc_steps -= 1
+			
+			if on_wfc_cell_collapsed(last_wfc, _wfc._wfc_gd.get_wave()[last_wfc]):
+				meshes_added -= 1
+			
 			if last_wfc == -1:
-				added_mesh = true
+				meshes_added = 0
 				_wfc._wfc_finished = true
 			
 	# find out which cell face the mouse is over
@@ -110,7 +129,8 @@ func _process(delta: float) -> void:
 		_reset()
 		
 func _reset():
-	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
+	_wfc.reset()
+	#_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
 	#_reset_mesh()
 	
 func _reset_mesh():
@@ -122,13 +142,14 @@ func _reset_mesh():
 func _do_mouse_picking() -> void:
 	var screen_pos = get_viewport().get_mouse_position()
 	var ray_origin = _camera.get_camera().project_ray_origin(screen_pos)
-	var ray_dir = _camera.get_camera().project_ray_normal(screen_pos).normalized()	
+	var ray_dir = _camera.get_camera().project_ray_normal(screen_pos).normalized()
 	var voxel = _voxel_grid.intersect(ray_origin, ray_dir)
 	
 	if voxel:
 		_mouse_picker.transform.origin = _voxel_grid.get_verts()[voxel.vert]
 		if Input.is_action_just_released("mouse_left"):
 			_voxel_grid.set_voxel(voxel, true)
+			_wfc.set_voxel(voxel, _voxel_grid.get_voxels(), _icosphere.get_polys())
 			_reset()
 
 func _add_mesh_for_prototype_on_quad(cell, prototype):

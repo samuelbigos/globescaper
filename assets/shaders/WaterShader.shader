@@ -77,7 +77,7 @@ bool ray_hit(vec3 pos, out float dist) {
 	dist = sdf(pos);
 	dist = dist * 2.0 - 1.0;
 	dist *= u_sdf_dist_mod;
-	return dist <= 0.001;
+	return dist <= 0.01;
 }
 
 bool outofbounds(vec3 ray) {
@@ -93,7 +93,7 @@ float shadow_calc(vec3 origin, vec3 dir, float k) {
 	float dist;
 	dir = normalize(dir);
 	float res = 1.0;
-	float t = 0.1;
+	float t = 0.001;
 	vec3 ray = origin + dir * t;
 	for (int i = 0; i < 64; i++) {
 		if (ray_hit(ray, dist)) {
@@ -228,15 +228,6 @@ void fragment() {
 	vec3 water_col = vec3(0.0);
 	float depth_difference = 0.0;
 	{
-		// depth texture based water depth calculation - issues with MSAA and skewed based on perspective
-//		float depth = texture(DEPTH_TEXTURE, SCREEN_UV).x;
-//		vec3 ndc = vec3(SCREEN_UV, depth) * 2.0 - 1.0;
-//		vec4 view = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
-//		view.xyz /= view.w;
-//		float linear_depth = -view.z;
-//
-//		depth_difference = linear_depth - (FRAGCOORD.z / FRAGCOORD.w);
-
 		// SDF based water depth instead
 		ray_hit(WORLD_PIXEL, depth_difference);
 		
@@ -281,17 +272,19 @@ void fragment() {
 	}
 	
 	// calculate shadow
-	vec3 ray_origin = WORLD_PIXEL + WORLD_NORMAL * 0.1;
+	vec3 ray_origin = WORLD_PIXEL + WORLD_NORMAL * 0.001;
 	vec3 ray_dir = normalize(u_sun_pos - WORLD_PIXEL);	
-	vec3 oy = normalize(WORLD_PIXEL - dFdy(WORLD_PIXEL)) * 0.01;
-	vec3 ox = normalize(WORLD_PIXEL - dFdx(WORLD_PIXEL)) * 0.01;
+	vec3 oy = normalize(WORLD_PIXEL - dFdy(WORLD_PIXEL)) * 0.05;
+	vec3 ox = normalize(WORLD_PIXEL - dFdx(WORLD_PIXEL)) * 0.05;
 	float s = 0.0;
-	for (int x = -1; x < 2; x++) {
-		for (int y = -1; y < 2; y++) {
-			s += shadow_calc(ray_origin + oy * float(y) + ox * float(x), ray_dir, 1.0);
+	for (int x = 0; x < 2; x++) {
+		for (int y = 0; y < 2; y++) {
+			float fx = float(x) - 0.5;
+			float fy = float(y) - 0.5;
+			s += shadow_calc(ray_origin + oy * fy + ox * fx, ray_dir, 1.0);
 		}
 	}
-	s /= 9.0;
+	s /= 4.0;
 	
 	// ao
 	float ao = ao_calc(WORLD_PIXEL + WORLD_NORMAL * 1.1);
@@ -315,7 +308,7 @@ void fragment() {
 	// combine terms
 	vec3 col = water_col.rgb;
 	float brightness = 1.0; // global sun brightness
-	float ambient = 0.0;
+	float ambient = 0.025;
 		
 	ALBEDO = col; // start with colour
 	ALBEDO *= brightness;

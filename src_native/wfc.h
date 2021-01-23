@@ -46,10 +46,12 @@ private:
 
     int _wfc_collapse();
     bool _wfc_propagate();
-    double _wfc_calc_entropy(int cell);
+    double _wfc_calc_entropy_shannon(int cell);
+    double _wfc_calc_entropy_distance(int cell);
     bool _wfc_compatible(int prot_1, int prot_2, int sv, int nv);
     void _wfc_ban(int cell, int tile);
     int _wfc_observe();
+    bool _match(int prototype, Array top, Array bot);
     float _randf();
 
     Array2D<int16_t>* _cells;
@@ -59,8 +61,12 @@ private:
     std::vector<bool> _collapsed;
     std::vector<double> _entropy;
     std::vector<int16_t> _stack;
+    std::vector<Vector3> _cell_positions;
     Array _wave_final;
     int _current;
+    int _first_collapse;
+
+    Array2D<int16_t>* _cached_wave;
 
 public:
     static void _register_methods();
@@ -71,6 +77,8 @@ public:
     void setup_wfc(int seed, Array cells, Array prototypes, int grid_height);
     int step(Array wave);
     Array get_wave();
+    void add_constraint(int cell_idx, Array top, Array bot);
+    void reset();
 
     void _init();
 };
