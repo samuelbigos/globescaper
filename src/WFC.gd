@@ -40,11 +40,9 @@ func setup(var grid_cells, var prototypes, var voxels, var verts, var grid_heigh
 	var gd_prototypes = []
 	for prot in prototypes:
 		var gd_prot = _gdprototype_script.new()
-		gd_prot.top_slot = prot.top_int
-		gd_prot.bot_slot = prot.bot_int
-		gd_prot.h_slots = prot.h_ints
-		gd_prot.h_slots_inv = prot.h_ints_inv
 		gd_prot.rot = prot.rot
+		gd_prot.top = prot.corners_top
+		gd_prot.bot = prot.corners_bot
 		gd_prototypes.append(gd_prot)
 
 	_wfc_gd.setup_wfc(randi(), gd_cells, gd_prototypes, grid_height)

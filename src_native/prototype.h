@@ -17,10 +17,8 @@ public:
     void _init();
     void _process(float delta);
 
-    int top_slot;
-    int bot_slot;
-    Array h_slots;
-    Array h_slots_inv;
+    Array top;
+    Array bot;
     int rot;
 };
 

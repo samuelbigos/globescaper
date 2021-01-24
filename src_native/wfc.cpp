@@ -31,16 +31,28 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
     // create prototype array
     for (int i = 0; i < prototypes.size(); i++) {
         GDPrototype* prot = Object::cast_to<GDPrototype>(prototypes[i]);
-        _prototypes->get(i, PROT_TOP) = prot->top_slot;
-        _prototypes->get(i, PROT_BOT) = prot->bot_slot;
-        _prototypes->get(i, PROT_SIDE_0) = prot->h_slots[0];
-        _prototypes->get(i, PROT_SIDE_1) = prot->h_slots[1];
-        _prototypes->get(i, PROT_SIDE_2) = prot->h_slots[2];
-        _prototypes->get(i, PROT_SIDE_3) = prot->h_slots[3];
-        _prototypes->get(i, PROT_SIDE_0_INV) = prot->h_slots_inv[0];
-        _prototypes->get(i, PROT_SIDE_1_INV) = prot->h_slots_inv[1];
-        _prototypes->get(i, PROT_SIDE_2_INV) = prot->h_slots_inv[2];
-        _prototypes->get(i, PROT_SIDE_3_INV) = prot->h_slots_inv[3];
+        _prototypes->get(i, PROT_TOP_0) = prot->top[0];
+        _prototypes->get(i, PROT_TOP_1) = prot->top[1];
+        _prototypes->get(i, PROT_TOP_2) = prot->top[2];
+        _prototypes->get(i, PROT_TOP_3) = prot->top[3];
+        _prototypes->get(i, PROT_BOT_0) = prot->bot[0];
+        _prototypes->get(i, PROT_BOT_1) = prot->bot[1];
+        _prototypes->get(i, PROT_BOT_2) = prot->bot[2];
+        _prototypes->get(i, PROT_BOT_3) = prot->bot[3];
+
+        _prototypes->get(i, PROT_TOP) = _build_slot(prot->top[0], prot->top[1], prot->top[2], prot->top[3]);
+        _prototypes->get(i, PROT_BOT) = _build_slot(prot->bot[0], prot->bot[1], prot->bot[2], prot->bot[3]);
+
+        _prototypes->get(i, PROT_SIDE_0) = _build_slot(prot->top[0], prot->top[1], prot->bot[1], prot->bot[0]);
+        _prototypes->get(i, PROT_SIDE_1) = _build_slot(prot->top[1], prot->top[2], prot->bot[2], prot->bot[1]);
+        _prototypes->get(i, PROT_SIDE_2) = _build_slot(prot->top[2], prot->top[3], prot->bot[3], prot->bot[2]);
+        _prototypes->get(i, PROT_SIDE_3) = _build_slot(prot->top[3], prot->top[0], prot->bot[0], prot->bot[3]);
+
+        _prototypes->get(i, PROT_SIDE_0_INV) = _build_slot(prot->top[1], prot->top[0], prot->bot[0], prot->bot[1]);
+        _prototypes->get(i, PROT_SIDE_1_INV) = _build_slot(prot->top[2], prot->top[1], prot->bot[1], prot->bot[2]);
+        _prototypes->get(i, PROT_SIDE_2_INV) = _build_slot(prot->top[3], prot->top[2], prot->bot[2], prot->bot[3]);
+        _prototypes->get(i, PROT_SIDE_3_INV) = _build_slot(prot->top[0], prot->top[3], prot->bot[3], prot->bot[0]);
+
         _prototypes->get(i, PROT_WEIGHT) = 1;
     }
 
@@ -71,16 +83,28 @@ void WFC::setup_wfc(int seed, Array cells, Array prototypes, int grid_height) {
             }
             else {
                 if (cell->layer == 0) {
-                    if (_prototypes->get(p, PROT_BOT) == 15)
-                        _wave->get(i, p) = 1;
-                    else
+                    if (_prototypes->get(p, PROT_BOT_0) > 0 &&
+                        _prototypes->get(p, PROT_BOT_1) > 0 &&
+                        _prototypes->get(p, PROT_BOT_2) > 0 &&
+                        _prototypes->get(p, PROT_BOT_3) > 0) 
+                    {
+                         _wave->get(i, p) = 1;
+                    }
+                    else {
                         _wave->get(i, p) = 0;
+                    }
                 }
                 else if (cell->layer == grid_height - 1) {
-                    if (_prototypes->get(p, PROT_TOP) == 0)
+                    if (_prototypes->get(p, PROT_TOP_0) == 0 &&
+                        _prototypes->get(p, PROT_TOP_1) == 0 &&
+                        _prototypes->get(p, PROT_TOP_2) == 0 &&
+                        _prototypes->get(p, PROT_TOP_3) == 0)
+                    {
                         _wave->get(i, p) = 1; 
-                    else
+                    }
+                    else {
                         _wave->get(i, p) = 0;
+                    }
                 }
                 else {
                     _wave->get(i, p) = 1;
@@ -128,41 +152,42 @@ void WFC::add_constraint(int cell_idx, Array top, Array bot) {
     _first_collapse = cell_idx;
 }
 
+uint16_t WFC::_build_slot(int c1, int c2, int c3, int c4) {
+    uint16_t slot = 0;
+    slot = slot | ((c1 & 0xF) << 0);
+    slot = slot | ((c2 & 0xF) << 4);
+    slot = slot | ((c3 & 0xF) << 8);
+    slot = slot | ((c4 & 0xF) << 12);
+    return slot;
+}
+
 bool WFC::_match(int p, Array top, Array bot) {
     bool match = true;
     //printf("%d - %d\n", uint8_t(_prototypes->get(p, PROT_BOT)), (uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1);
     // bot
-    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1) 
-        != static_cast<uint8_t>(bot[0])) {
+    if (_prototypes->get(p, PROT_BOT_0) > 0 != static_cast<uint8_t>(bot[0]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 1) & 1) 
-        != static_cast<uint8_t>(bot[1])) {
+    if (_prototypes->get(p, PROT_BOT_1) > 0 != static_cast<uint8_t>(bot[1]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 2) & 1) 
-        != static_cast<uint8_t>(bot[2])) {
+    if (_prototypes->get(p, PROT_BOT_2) > 0 != static_cast<uint8_t>(bot[2]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_BOT)) >> 3) & 1) 
-        != static_cast<uint8_t>(bot[3])) {
+    if (_prototypes->get(p, PROT_BOT_3) > 0 != static_cast<uint8_t>(bot[3]) > 0) {
         match = false;
     }
     // top
-    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 0) & 1) 
-        != static_cast<uint8_t>(top[0])) {
+    if (_prototypes->get(p, PROT_TOP_0) > 0 != static_cast<uint8_t>(top[0]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 1) & 1) 
-        != static_cast<uint8_t>(top[1])) {
+    if (_prototypes->get(p, PROT_TOP_1) > 0 != static_cast<uint8_t>(top[1]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 2) & 1) 
-        != static_cast<uint8_t>(top[2])) {
+    if (_prototypes->get(p, PROT_TOP_2) > 0 != static_cast<uint8_t>(top[2]) > 0) {
         match = false;
     }
-    if (((uint8_t(_prototypes->get(p, PROT_TOP)) >> 3) & 1) 
-        != static_cast<uint8_t>(top[3])) {
+    if (_prototypes->get(p, PROT_TOP_3) > 0 != static_cast<uint8_t>(top[3]) > 0) {
         match = false;
     }
     if (match) {

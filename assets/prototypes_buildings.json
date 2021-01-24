@@ -1,0 +1,60 @@
+{
+   "prototypes": [
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1000-0000"],
+         "mesh_rots": [0, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 0, 0, 0],
+         "corners_top": [2, 0, 0, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1100-0000"],
+         "mesh_rots": [0, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 0, 0],
+         "corners_top": [2, 0, 0, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1100-0000"],
+         "mesh_rots": [1, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 0, 0],
+         "corners_top": [0, 2, 0, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1110-0000"],
+         "mesh_rots": [0, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 1, 0],
+         "corners_top": [2, 0, 0, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1110-0000"],
+         "mesh_rots": [1, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 1, 0],
+         "corners_top": [0, 2, 0, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1110-0000"],
+         "mesh_rots": [2, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 1, 0],
+         "corners_top": [0, 0, 2, 0],
+      },
+      {
+         "mesh_names": ["building_0000-1000", "cliff_1111-0000"],
+         "mesh_rots": [0, 0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [1, 1, 1, 1],
+         "corners_top": [2, 0, 0, 0],
+      },
+      {
+         "mesh_names": ["building_1000-0000"],
+         "mesh_rots": [0],
+         "rotations": [0, 1, 2, 3],
+         "corners_bot": [2, 0, 0, 0],
+         "corners_top": [0, 0, 0, 0],
+      },
+   ]
+}

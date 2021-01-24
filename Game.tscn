@@ -142,6 +142,7 @@ land_material = SubResource( 1 )
 water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
 water_shallow_colour = Color( 0.286275, 0.894118, 1, 1 )
 water_height = 1.0
+wfc_auto = true
 MaxNewMeshesPerFrame = 1
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
@@ -160,7 +161,7 @@ material/0 = null
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
-MinDistance = 20.0
+MinDistance = 10.0
 
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 

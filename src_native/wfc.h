@@ -40,6 +40,14 @@ private:
         PROT_SIDE_1_INV,
         PROT_SIDE_2_INV,
         PROT_SIDE_3_INV,
+        PROT_TOP_0,
+        PROT_TOP_1,
+        PROT_TOP_2,
+        PROT_TOP_3,
+        PROT_BOT_0,
+        PROT_BOT_1,
+        PROT_BOT_2,
+        PROT_BOT_3,
         PROT_WEIGHT,
         PROT_COUNT
     };
@@ -52,6 +60,7 @@ private:
     void _wfc_ban(int cell, int tile);
     int _wfc_observe();
     bool _match(int prototype, Array top, Array bot);
+    uint16_t _build_slot(int c1, int c2, int c3, int c4);
     float _randf();
 
     Array2D<int16_t>* _cells;

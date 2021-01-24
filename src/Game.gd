@@ -36,7 +36,6 @@ func _ready() -> void:
 	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + water_height + 0.01)
 	_prototype_db.load_prototypes()
 	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
-	
 	_setup_meshes()
 	_update_gui();
 	
@@ -61,12 +60,12 @@ func _setup_meshes():
 #	_globe_ocean.mesh.radius = _icosphere.radius + water_height
 #	_globe_ocean.mesh.height = _globe_ocean.mesh.radius * 2.0
 	
-	var globe_wireframe_mesh = ArrayMesh.new()
-	var globe_wireframe_array = _icosphere.get_array_mesh(true)
-	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
-		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
-	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
-	_globe_wireframe.set_mesh(globe_wireframe_mesh)
+#	var globe_wireframe_mesh = ArrayMesh.new()
+#	var globe_wireframe_array = _icosphere.get_array_mesh(true)
+#	for i in range(globe_wireframe_array[Mesh.ARRAY_VERTEX].size()):
+#		globe_wireframe_array[Mesh.ARRAY_VERTEX][i] = globe_wireframe_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + water_height)
+#	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
+#	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
 func _process(delta: float) -> void:
 	_camera.update(delta)
@@ -131,7 +130,7 @@ func _process(delta: float) -> void:
 func _reset():
 	_wfc.reset()
 	#_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
-	#_reset_mesh()
+	_reset_mesh()
 	
 func _reset_mesh():
 	_globe_land.set_mesh(ArrayMesh.new())
@@ -171,7 +170,7 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 			return false
 					
 		# transform each vert in the prototype mesh
-		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * prototype.mesh_rots[i])
+		var rot_matrix = Transform.IDENTITY.rotated(Vector3(0.0, 1.0, 0.0).normalized(), PI * 0.5 * -prototype.mesh_rots[i])
 		for v in range(0, tile_arrays[Mesh.ARRAY_VERTEX].size()):
 			var vert = tile_arrays[Mesh.ARRAY_VERTEX][v]
 			var normal = tile_arrays[Mesh.ARRAY_NORMAL][v]
