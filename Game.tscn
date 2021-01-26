@@ -62,16 +62,20 @@ shader_param/u_cols = null
 shader_param/u_camera_pos = null
 shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
-shader_param/u_atmosphere_radius = 14.092
+shader_param/u_atmosphere_radius = 15.0
 shader_param/u_planet_radius = 11.069
 shader_param/u_atmosphere_samples = 20
 shader_param/u_optical_samples = 5
-shader_param/u_sun_intensity = 0.06
-shader_param/u_scattering_strength = 1.563
+shader_param/u_sun_intensity = 1.5
+shader_param/u_scattering_strength = 0.95
 shader_param/u_scattering_wavelengths = Vector3( 700, 530, 440 )
-shader_param/u_density_falloff = 2.216
+shader_param/u_density_falloff = 2.5
 shader_param/u_volumetric_shadow_scale = 14.17
 shader_param/u_volumetric_shadows = false
+shader_param/u_phase_r = 15.0
+shader_param/u_mie_scatter_coeff = 300.0
+shader_param/u_mie_falloff = 10.0
+shader_param/u_mie_g = 0.76
 
 [sub_resource type="SphereMesh" id=6]
 material = SubResource( 5 )
@@ -113,7 +117,7 @@ height = 10.0
 
 [sub_resource type="SpatialMaterial" id=12]
 flags_unshaded = true
-albedo_color = Color( 1, 0.843137, 0, 1 )
+albedo_color = Color( 1, 0.901961, 0.6, 1 )
 
 [sub_resource type="ShaderMaterial" id=13]
 shader = ExtResource( 8 )
@@ -139,9 +143,9 @@ shader = ExtResource( 8 )
 [node name="Game" type="Spatial"]
 script = ExtResource( 1 )
 land_material = SubResource( 1 )
-water_deep_colour = Color( 0.054902, 0.635294, 0.992157, 1 )
-water_shallow_colour = Color( 0.286275, 0.894118, 1, 1 )
-water_height = 1.0
+water_deep_colour = Color( 0.427451, 0.709804, 0.729412, 1 )
+water_shallow_colour = Color( 0.427451, 0.709804, 0.729412, 1 )
+water_height = 0.75
 wfc_auto = true
 MaxNewMeshesPerFrame = 1
 
@@ -166,7 +170,7 @@ MinDistance = 10.0
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30.3436 )
+transform = Transform( 1, 0, 0, 0, 0.979392, 0.201967, 0, -0.201967, 0.979392, 0, 10.6007, 30.6134 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -205,7 +209,7 @@ material/0 = null
 transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
-transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 0, 0 )
+transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 21.1992, 2.28882e-05 )
 mesh = SubResource( 11 )
 material/0 = SubResource( 12 )
 
@@ -245,13 +249,13 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
-grid_height = 4
 cell_height = 1.0
 possibility_cube_material = SubResource( 13 )
 voxel_inside_material = SubResource( 14 )
 voxel_outside_material = SubResource( 15 )
 
 [node name="GridMesh" type="MeshInstance" parent="VoxelGrid"]
+visible = false
 material_override = SubResource( 16 )
 
 [node name="Icosphere" type="Node" parent="."]

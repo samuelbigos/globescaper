@@ -23,9 +23,16 @@ uniform float u_density_falloff = 1.0;
 uniform float u_volumetric_shadow_scale = 10.0;
 uniform bool u_volumetric_shadows = false;
 
+uniform float u_phase_r = 16.0;
+uniform float u_mie_scatter_coeff = 500.0;
+uniform float u_mie_falloff = 1.0;
+uniform float u_mie_g = 0.76;
+
 varying vec3 WORLD_PIXEL;
 varying vec3 SDF_TEX_SIZE;
 varying vec3 INV_SDF_TEX_SIZE;
+
+const float PI = 3.14159265358979323846;
 
 void vertex() {
 	WORLD_PIXEL = VERTEX;
@@ -115,14 +122,14 @@ bool intersect(vec3 origin, vec3 ray, float radius, vec3 centre, out float a, ou
 	return true;
 }
 
-float density_at_point(vec3 point) {
+float density_at_point(vec3 point, float falloff) {
 	float height_above_surface = distance(u_planet_centre, point) - u_planet_radius;
 	float height = height_above_surface / (u_atmosphere_radius - u_planet_radius);
-	float local_density = exp(-height * u_density_falloff) * (1.0 - height);
+	float local_density = exp(-height * falloff) * (1.0 - height);
 	return local_density;
 }
 
-float optical_depth(vec3 point, vec3 sun_dir, float ray_length) {
+float optical_depth(vec3 point, vec3 sun_dir, float ray_length, float falloff) {
 	float optical_depth = 0.0;
 
 	// sample on the segment pc
@@ -131,7 +138,7 @@ float optical_depth(vec3 point, vec3 sun_dir, float ray_length) {
 	
 	for (int i = 0; i < u_optical_samples; i++) {
 		vec3 sample_point = point + sun_dir * (dist + step_size * 0.5);
-		optical_depth += density_at_point(sample_point) * step_size;
+		optical_depth += density_at_point(sample_point, falloff) * step_size;
 		dist += step_size;
 	}
 	return optical_depth;
@@ -167,6 +174,18 @@ void fragment() {
 	scatter_coeffs.g = pow(400.0 / u_scattering_wavelengths.g, 4.0) * u_scattering_strength;
 	scatter_coeffs.b = pow(400.0 / u_scattering_wavelengths.b, 4.0) * u_scattering_strength;
 	
+	vec3 scatter_coeffs_m = vec3(0.0);
+	scatter_coeffs_m.r = pow(400.0 / u_mie_scatter_coeff, 4.0) * u_scattering_strength;
+	scatter_coeffs_m.g = pow(400.0 / u_mie_scatter_coeff, 4.0) * u_scattering_strength;
+	scatter_coeffs_m.b = pow(400.0 / u_mie_scatter_coeff, 4.0) * u_scattering_strength;
+	
+	vec3 sun_dir = normalize(u_sun_pos - u_camera_pos);
+	float mu = dot(ray, sun_dir); // mu in the paper which is the cosine of the angle between the sun direction and the ray direction 
+	float phase_r = 3.0 / (u_phase_r * PI) * (1.0 + mu * mu);
+	
+	float g = u_mie_g; 
+    float phase_m = 3.0 / (8.0 * PI) * ((1.0 - g * g) * (1.0 + mu * mu)) / ((2.0 + g * g) * pow(1.0 + g * g - 2.0 * g * mu, 1.50)); 
+	
 	float aA; // atmosphere entry
 	float aB; // atmosphere exit (or planet surface)
 	if (intersect(origin, ray, u_atmosphere_radius, u_planet_centre, aA, aB)) {
@@ -178,7 +197,8 @@ void fragment() {
 		}
 			
 		float optical_depth_pa = 0.0;
-		vec3 light = vec3(0.0);
+		vec3 light_r = vec3(0.0);
+		vec3 light_m = vec3(0.0);
 		float step_size = (aB - aA) / float(u_atmosphere_samples);
 		float dist = aA + step_size * 0.5;
 		
@@ -193,14 +213,19 @@ void fragment() {
 			
 			float sun_ray_dist, _;
 			intersect(in_scatter_point, to_sun, u_atmosphere_radius, u_planet_centre, _, sun_ray_dist);
-			float sun_ray_optical_depth = optical_depth(in_scatter_point, to_sun, sun_ray_dist);
-			float view_ray_optical_depth = optical_depth(in_scatter_point, -ray, dist);
+			float sun_ray_optical_depth_r = optical_depth(in_scatter_point, to_sun, sun_ray_dist, u_density_falloff);
+			float sun_ray_optical_depth_m = optical_depth(in_scatter_point, to_sun, sun_ray_dist, u_mie_falloff);
 			
-			vec3 transmittance = exp(-scatter_coeffs * (sun_ray_optical_depth + view_ray_optical_depth));
-			light += transmittance * density_at_point(in_scatter_point) * step_size * res;
+			float view_ray_optical_depth_r = optical_depth(in_scatter_point, -ray, dist, u_density_falloff);
+			float view_ray_optical_depth_m = optical_depth(in_scatter_point, -ray, dist, u_mie_falloff);
+			
+			vec3 tau = scatter_coeffs * (sun_ray_optical_depth_r + view_ray_optical_depth_r) + scatter_coeffs_m * 1.1 * (sun_ray_optical_depth_m + view_ray_optical_depth_m);
+			vec3 transmittance = vec3(exp(-tau.x), exp(-tau.y), exp(-tau.z));
+			light_r += transmittance * density_at_point(in_scatter_point, u_density_falloff) * step_size * res;
+			light_m += transmittance * density_at_point(in_scatter_point, u_mie_falloff) * step_size * res;
 			dist += step_size;
 		}
-		vec3 sun_i = light * u_sun_intensity * scatter_coeffs;
+		vec3 sun_i = (light_r * scatter_coeffs * phase_r + light_m * scatter_coeffs_m * phase_m) * u_sun_intensity;
 		ALBEDO = vec3(sun_i);
 	}
 	else {

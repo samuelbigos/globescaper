@@ -83,7 +83,7 @@ func _process(delta: float) -> void:
 	atmosphere_mat.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf.set_sdf_params_on_mat(atmosphere_mat)
 	atmosphere_mat.set_shader_param("u_sun_pos", $SunGimbal/Sun.global_transform.origin)
-	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius + water_height)
+	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius)
 	
 	if SunAutoRotate:
 		$SunGimbal.rotation.y += delta * PI * 0.1
@@ -121,7 +121,7 @@ func _process(delta: float) -> void:
 				_wfc._wfc_finished = true
 			
 	# find out which cell face the mouse is over
-	_do_mouse_picking()
+	#_do_mouse_picking()
 	
 	# reset wfc
 	if Input.is_action_just_pressed("r"):

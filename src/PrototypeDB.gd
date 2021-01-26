@@ -93,3 +93,5 @@ func load_prototypes():
 					var mesh : Mesh = load("res://assets/tiles/" + mesh_name + ".obj")
 					if mesh.get_surface_count() > 0:
 						_prototype_mesh_arrays[mesh_name] = mesh.surface_get_arrays(0)
+						
+	print(_prototypes.size())

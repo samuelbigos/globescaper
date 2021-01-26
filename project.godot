@@ -54,10 +54,10 @@ gdscript/warnings/integer_division=false
 
 [display]
 
-window/size/width=960
-window/size/height=640
-window/size/test_width=960
-window/size/test_height=640
+window/size/width=1440
+window/size/height=960
+window/size/test_width=1440
+window/size/test_height=960
 window/vsync/use_vsync=false
 window/stretch/mode="viewport"
 window/filters/msaa=3

@@ -235,7 +235,7 @@ void fragment() {
 		depth_difference = 1.0 - min(1.0, max(0.0, depth_difference / max_depth));
 		depth_difference = pow(depth_difference, 1.0);
 		
-		water_col = u_deep_colour.rgb + (u_shallow_colour.rgb - u_deep_colour.rgb) * depth_difference;
+		//water_col = u_deep_colour.rgb + (u_shallow_colour.rgb - u_deep_colour.rgb) * depth_difference;
 	}
 	
 	// get the incidence angle of the camera and water
@@ -243,7 +243,7 @@ void fragment() {
 	{
 		vec3 normal = NORMAL;
 		incidence = min(1.0, max(0.0, dot(normalize(VERTEX), -normal)));
-		incidence = pow(1.0 - incidence, 3.0);
+		incidence = 1.0; //pow(1.0 - incidence, 3.0);
 	}
 	
 	// water colour modulated by depth and incidence
@@ -266,9 +266,9 @@ void fragment() {
 		float shore_step = ((1.0 - depth_difference) - 0.5) * 0.5;
 		float wave_shore = step(shore_step, shore_noise) * depth_difference;
 		
-		water_col += + wave_high; // add high waves
-		water_col *= max(wave_high, (wave_low) + 0.5); // add low waves
-		water_col += wave_shore;
+		//water_col += + wave_high; // add high waves
+		//water_col *= max(wave_high, (wave_low) + 0.5); // add low waves
+		//water_col += wave_shore;
 	}
 	
 	// calculate shadow
