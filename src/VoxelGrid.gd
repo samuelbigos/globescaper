@@ -14,7 +14,7 @@ class Cell:
 class Voxel:
 	var vert : int
 	var connected_cells = []
-	var inside = false
+	var value = 0
 	var vis_sphere = null
 	
 	
@@ -63,7 +63,7 @@ func create(var icosphere_verts, var icosphere_polys, var radius: float, var gri
 			voxel.vert = _grid_verts.size() - 1
 			_grid_voxels[v].append(voxel)
 			if h == 0:
-				voxel.inside = true
+				voxel.value = 1
 			
 			if voxel_space_visualisation:
 				var sphere = _create_voxel_sphere(_grid_verts[vert_idx], voxel.inside)
@@ -209,7 +209,12 @@ func interpolate_corners(var corners, var x: float, var y: float) -> Vector3:
 	var new_x2 = lerp(corners[3], corners[2], x)
 	return lerp(new_x1, new_x2, y)
 			
-func intersect(var ray_origin: Vector3, var ray_dir: Vector3) -> Voxel:
+func intersect(var ray_origin: Vector3, var ray_dir: Vector3, var radius: float) -> Voxel:
+	var centre := Vector3(0.0, 0.0, 0.0)
+	var dist_to_centre = _nearest_point_on_line(ray_origin, ray_dir, centre).distance_to(centre)
+	if dist_to_centre > radius:
+		return null
+		
 	# find the voxel on each layer closest to the picking ray.
 	var intersect_voxel
 	for h in range(grid_height - 1, -1, -1):
@@ -217,7 +222,7 @@ func intersect(var ray_origin: Vector3, var ray_dir: Vector3) -> Voxel:
 		var closest_val = 9999.0
 		for v in _grid_voxels.size():
 			
-			if h > 0 and not _grid_voxels[v][h - 1].inside:
+			if h > 0 and _grid_voxels[v][h - 1].value == 0:
 				continue
 				
 			var point = _grid_verts[_grid_voxels[v][h].vert]
@@ -229,16 +234,16 @@ func intersect(var ray_origin: Vector3, var ray_dir: Vector3) -> Voxel:
 				closest_val = dist
 				closest = v
 		
-		if closest != -1 and _grid_voxels[closest][h].inside == false:
+		if closest != -1 and _grid_voxels[closest][h].value == 0:
 			intersect_voxel = _grid_voxels[closest][h]
 
 	return intersect_voxel
 	
-func set_voxel(var voxel: Voxel, var inside: bool):
-	voxel.inside = inside
+func set_voxel(var voxel: Voxel, var value : int):
+	voxel.value = value
 	if voxel_space_visualisation:
 		if voxel.vis_sphere:
-			if inside:
+			if value > 0:
 				voxel.vis_sphere.get_mesh().surface_set_material(0, voxel_inside_material)
 			else:
 				voxel.vis_sphere.get_mesh().surface_set_material(0, voxel_outside_material)

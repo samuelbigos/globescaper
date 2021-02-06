@@ -1,4 +1,4 @@
-[gd_scene load_steps=39 format=2]
+[gd_scene load_steps=40 format=2]
 
 [ext_resource path="res://src/Game.gd" type="Script" id=1]
 [ext_resource path="res://src/Camera.gd" type="Script" id=2]
@@ -10,9 +10,9 @@
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=8]
 [ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=9]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=10]
-[ext_resource path="res://assets/1px.png" type="Texture" id=11]
+[ext_resource path="res://assets/img/1px.png" type="Texture" id=11]
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=12]
-[ext_resource path="res://assets/palette.png" type="Texture" id=13]
+[ext_resource path="res://assets/img/palette.png" type="Texture" id=13]
 [ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=14]
 [ext_resource path="res://bin/wfc.gdns" type="Script" id=15]
 [ext_resource path="res://src/VoxelGrid.gd" type="Script" id=16]
@@ -20,6 +20,7 @@
 [ext_resource path="res://assets/shaders/VoxelSpereInside.shader" type="Shader" id=18]
 [ext_resource path="res://assets/shaders/Atmosphere.shader" type="Shader" id=19]
 [ext_resource path="res://assets/env.tres" type="Environment" id=20]
+[ext_resource path="res://assets/scenes/GUI.tscn" type="PackedScene" id=21]
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 7 )
@@ -64,7 +65,7 @@ shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
 shader_param/u_atmosphere_radius = 15.0
 shader_param/u_planet_radius = 11.069
-shader_param/u_atmosphere_samples = 20
+shader_param/u_atmosphere_samples = 28
 shader_param/u_optical_samples = 5
 shader_param/u_sun_intensity = 1.5
 shader_param/u_scattering_strength = 0.95
@@ -146,7 +147,6 @@ land_material = SubResource( 1 )
 water_deep_colour = Color( 0.427451, 0.709804, 0.729412, 1 )
 water_shallow_colour = Color( 0.427451, 0.709804, 0.729412, 1 )
 water_height = 0.75
-wfc_auto = true
 MaxNewMeshesPerFrame = 1
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
@@ -170,7 +170,7 @@ MinDistance = 10.0
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 0.979392, 0.201967, 0, -0.201967, 0.979392, 0, 10.6007, 30.6134 )
+transform = Transform( 1, 0, 0, 0, 0.976699, 0.214616, 0, -0.214616, 0.976699, 0, 6.3461, 27.9676 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -207,39 +207,12 @@ material/0 = null
 
 [node name="SunGimbal" type="Spatial" parent="."]
 transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
+visible = false
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
 transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 21.1992, 2.28882e-05 )
 mesh = SubResource( 11 )
 material/0 = SubResource( 12 )
-
-[node name="VSplitContainer" type="VSplitContainer" parent="."]
-visible = false
-margin_right = 40.0
-margin_bottom = 40.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="HBoxContainer" type="HBoxContainer" parent="VSplitContainer"]
-margin_right = 123.0
-margin_bottom = 40.0
-
-[node name="QuinticFilteringLabel" type="Label" parent="VSplitContainer/HBoxContainer"]
-margin_top = 13.0
-margin_right = 111.0
-margin_bottom = 27.0
-text = "Quintic Filtering: "
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="QuinticFilteringValue" type="Label" parent="VSplitContainer/HBoxContainer"]
-margin_left = 115.0
-margin_top = 13.0
-margin_right = 123.0
-margin_bottom = 27.0
-text = "0"
 
 [node name="WFC" type="Node" parent="."]
 script = ExtResource( 5 )
@@ -249,6 +222,7 @@ script = ExtResource( 15 )
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 16 )
+grid_height = 5
 cell_height = 1.0
 possibility_cube_material = SubResource( 13 )
 voxel_inside_material = SubResource( 14 )
@@ -272,3 +246,8 @@ material/0 = SubResource( 18 )
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = ExtResource( 20 )
+
+[node name="GUI" parent="." instance=ExtResource( 21 )]
+margin_left = 10.0
+margin_top = 10.0
+[connection signal="on_mode_changed" from="GUI" to="." method="_on_GUI_on_mode_changed"]

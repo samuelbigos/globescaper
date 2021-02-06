@@ -19,6 +19,8 @@ var _cell_idx_to_prototype = {}
 var _debug_display_mode = 0
 var _water_material : Material
 
+var _active_placement_mode := 1
+
 onready var _camera = get_node("HGimbal")
 onready var _globe_wireframe = get_node("GlobeWireframe")
 onready var _globe_ocean : MeshInstance = get_node("GlobeOcean")
@@ -36,6 +38,7 @@ func _ready() -> void:
 	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + water_height + 0.01)
 	_prototype_db.load_prototypes()
 	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
+	#_wfc._wfc_finished = true
 	_setup_meshes()
 	_update_gui();
 	
@@ -121,7 +124,7 @@ func _process(delta: float) -> void:
 				_wfc._wfc_finished = true
 			
 	# find out which cell face the mouse is over
-	#_do_mouse_picking()
+	_do_mouse_picking()
 	
 	# reset wfc
 	if Input.is_action_just_pressed("r"):
@@ -130,7 +133,7 @@ func _process(delta: float) -> void:
 func _reset():
 	_wfc.reset()
 	#_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.grid_height, true, _icosphere.get_polys())
-	_reset_mesh()
+	#_reset_mesh()
 	
 func _reset_mesh():
 	_globe_land.set_mesh(ArrayMesh.new())
@@ -142,14 +145,17 @@ func _do_mouse_picking() -> void:
 	var screen_pos = get_viewport().get_mouse_position()
 	var ray_origin = _camera.get_camera().project_ray_origin(screen_pos)
 	var ray_dir = _camera.get_camera().project_ray_normal(screen_pos).normalized()
-	var voxel = _voxel_grid.intersect(ray_origin, ray_dir)
+	var voxel = _voxel_grid.intersect(ray_origin, ray_dir, _icosphere.radius)
 	
 	if voxel:
+		_mouse_picker.visible = true
 		_mouse_picker.transform.origin = _voxel_grid.get_verts()[voxel.vert]
 		if Input.is_action_just_released("mouse_left"):
-			_voxel_grid.set_voxel(voxel, true)
+			_voxel_grid.set_voxel(voxel, _active_placement_mode)
 			_wfc.set_voxel(voxel, _voxel_grid.get_voxels(), _icosphere.get_polys())
 			_reset()
+	else:
+		_mouse_picker.visible = false
 
 func _add_mesh_for_prototype_on_quad(cell, prototype):
 	var array_mesh = _globe_land.get_mesh()
@@ -243,3 +249,6 @@ func remove_cell_surface(var cell_idx):
 			for s in range(0, _cell_idx_to_surface[key].size()):
 				if _cell_idx_to_surface[key][s] > i:
 					_cell_idx_to_surface[key][s] -= 1
+
+func _on_GUI_on_mode_changed(mode):
+	_active_placement_mode = mode

@@ -7,8 +7,6 @@ onready var _wfc_gd = get_node("WFCNative")
 onready var _gdcell_script = load("res://bin/gdcell.gdns")
 onready var _gdprototype_script = load("res://bin/gdprototype.gdns")
 
-#signal on_wfc_cell_collapsed(cell_id, prototype_id)
-
 
 func setup(var grid_cells, var prototypes, var voxels, var verts, var grid_height: int, var constrained: bool, var quads):
 	var start = OS.get_ticks_msec()
@@ -31,8 +29,8 @@ func setup(var grid_cells, var prototypes, var voxels, var verts, var grid_heigh
 			gd_cell.constraint_bot = []
 			gd_cell.constraint_top = []
 			for i in range(0, 4):
-				gd_cell.constraint_bot.append(int(voxels[quads[cell.quad].v[i]][cell.layer].inside))
-				gd_cell.constraint_top.append(int(voxels[quads[cell.quad].v[i]][cell.layer + 1].inside))
+				gd_cell.constraint_bot.append(voxels[quads[cell.quad].v[i]][cell.layer].value)
+				gd_cell.constraint_top.append(voxels[quads[cell.quad].v[i]][cell.layer + 1].value)
 			
 		gd_cell.position = verts[cell.v_top[0]]
 		gd_cells.append(gd_cell)
@@ -53,8 +51,8 @@ func set_voxel(var voxel, var voxels, var quads):
 		var bot = []
 		var top = []
 		for i in range(0, 4):
-			bot.append(int(voxels[quads[cell.quad].v[i]][cell.layer].inside))
-			top.append(int(voxels[quads[cell.quad].v[i]][cell.layer + 1].inside))
+			bot.append(voxels[quads[cell.quad].v[i]][cell.layer].value)
+			top.append(voxels[quads[cell.quad].v[i]][cell.layer + 1].value)
 		add_constraint(cell.index, top, bot)
 	
 func add_constraint(var cell, var top, var bot):

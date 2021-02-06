@@ -163,31 +163,30 @@ uint16_t WFC::_build_slot(int c1, int c2, int c3, int c4) {
 
 bool WFC::_match(int p, Array top, Array bot) {
     bool match = true;
-    //printf("%d - %d\n", uint8_t(_prototypes->get(p, PROT_BOT)), (uint8_t(_prototypes->get(p, PROT_BOT)) >> 0) & 1);
     // bot
-    if (_prototypes->get(p, PROT_BOT_0) > 0 != static_cast<uint8_t>(bot[0]) > 0) {
+    if (_prototypes->get(p, PROT_BOT_0) != static_cast<uint8_t>(bot[0])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_BOT_1) > 0 != static_cast<uint8_t>(bot[1]) > 0) {
+    if (_prototypes->get(p, PROT_BOT_1) != static_cast<uint8_t>(bot[1])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_BOT_2) > 0 != static_cast<uint8_t>(bot[2]) > 0) {
+    if (_prototypes->get(p, PROT_BOT_2) != static_cast<uint8_t>(bot[2])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_BOT_3) > 0 != static_cast<uint8_t>(bot[3]) > 0) {
+    if (_prototypes->get(p, PROT_BOT_3) != static_cast<uint8_t>(bot[3])) {
         match = false;
     }
     // top
-    if (_prototypes->get(p, PROT_TOP_0) > 0 != static_cast<uint8_t>(top[0]) > 0) {
+    if (_prototypes->get(p, PROT_TOP_0) != static_cast<uint8_t>(top[0])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_TOP_1) > 0 != static_cast<uint8_t>(top[1]) > 0) {
+    if (_prototypes->get(p, PROT_TOP_1) != static_cast<uint8_t>(top[1])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_TOP_2) > 0 != static_cast<uint8_t>(top[2]) > 0) {
+    if (_prototypes->get(p, PROT_TOP_2) != static_cast<uint8_t>(top[2])) {
         match = false;
     }
-    if (_prototypes->get(p, PROT_TOP_3) > 0 != static_cast<uint8_t>(top[3]) > 0) {
+    if (_prototypes->get(p, PROT_TOP_3) != static_cast<uint8_t>(top[3])) {
         match = false;
     }
     if (match) {
