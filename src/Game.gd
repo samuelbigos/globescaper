@@ -5,7 +5,7 @@ class_name Game
 # exposed
 export var PlanetScene : PackedScene
 export var SunRadius = 100.0
-export var SunAtmosphereRadiusMod = 1.15
+export var SunAtmosphereRadiusMod = 1.1;
 
 # members
 var _debug_display_mode = 0

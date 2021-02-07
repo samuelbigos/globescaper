@@ -18,7 +18,7 @@
 [ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=16]
 [ext_resource path="res://assets/img/palette.png" type="Texture" id=17]
 
-[sub_resource type="ShaderMaterial" id=14]
+[sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 16 )
 shader_param/u_sun_pos = null
 shader_param/u_camera_pos = null
@@ -30,7 +30,7 @@ shader_param/u_cols = null
 shader_param/u_sdf_quintic_filter = null
 shader_param/u_texture = ExtResource( 17 )
 
-[sub_resource type="ShaderMaterial" id=1]
+[sub_resource type="ShaderMaterial" id=2]
 shader = ExtResource( 9 )
 shader_param/u_deep_colour = Plane( 1, 1, 1, 1 )
 shader_param/u_shallow_colour = Plane( 1, 1, 1, 1 )
@@ -43,12 +43,12 @@ shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_sdf_quintic_filter = null
 
-[sub_resource type="ShaderMaterial" id=2]
+[sub_resource type="ShaderMaterial" id=3]
 shader = ExtResource( 10 )
 
-[sub_resource type="ArrayMesh" id=3]
+[sub_resource type="ArrayMesh" id=4]
 
-[sub_resource type="ShaderMaterial" id=4]
+[sub_resource type="ShaderMaterial" id=5]
 shader = ExtResource( 13 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -74,26 +74,26 @@ shader_param/u_mie_scatter_coeff = 300.0
 shader_param/u_mie_falloff = 10.0
 shader_param/u_mie_g = 0.76
 
-[sub_resource type="SphereMesh" id=5]
-material = SubResource( 4 )
+[sub_resource type="SphereMesh" id=6]
+material = SubResource( 5 )
 radius = 20.0
 height = 40.0
 
-[sub_resource type="ShaderMaterial" id=6]
+[sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 6 )
 
-[sub_resource type="ShaderMaterial" id=7]
+[sub_resource type="ShaderMaterial" id=8]
 shader = ExtResource( 12 )
 
-[sub_resource type="ShaderMaterial" id=8]
+[sub_resource type="ShaderMaterial" id=9]
 shader = ExtResource( 7 )
 
-[sub_resource type="SpatialMaterial" id=9]
+[sub_resource type="SpatialMaterial" id=10]
 flags_transparent = true
 flags_unshaded = true
 albedo_color = Color( 0, 0, 0, 0.780392 )
 
-[sub_resource type="ShaderMaterial" id=10]
+[sub_resource type="ShaderMaterial" id=11]
 shader = ExtResource( 11 )
 shader_param/u_mesh_tex_size = null
 shader_param/u_num_tris = null
@@ -107,10 +107,10 @@ shader_param/u_use_bounding_sphere = null
 shader_param/u_bound_origin = null
 shader_param/u_bound_radius = null
 
-[sub_resource type="ViewportTexture" id=11]
+[sub_resource type="ViewportTexture" id=12]
 viewport_path = NodePath("SDFGen/Viewport")
 
-[sub_resource type="ShaderMaterial" id=12]
+[sub_resource type="ShaderMaterial" id=13]
 shader = ExtResource( 8 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
@@ -119,8 +119,8 @@ shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_cam_pos = null
 
-[sub_resource type="CubeMesh" id=13]
-material = SubResource( 12 )
+[sub_resource type="CubeMesh" id=14]
+material = SubResource( 13 )
 
 [sub_resource type="SphereMesh" id=15]
 radius = 0.5
@@ -128,40 +128,39 @@ height = 1.0
 
 [node name="Planet" type="Spatial"]
 script = ExtResource( 5 )
-LandMaterial = SubResource( 14 )
+LandMaterial = SubResource( 1 )
 WaterDeepColour = Color( 0, 0.858824, 1, 1 )
 WaterShallowColour = Color( 0, 0.858824, 1, 1 )
 AutoGenerate = true
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
-material_override = SubResource( 1 )
+material_override = SubResource( 2 )
 
 [node name="GlobeWireframe" type="MeshInstance" parent="."]
 visible = false
-material_override = SubResource( 2 )
+material_override = SubResource( 3 )
 
 [node name="GlobeLand" type="MeshInstance" parent="."]
-mesh = SubResource( 3 )
+mesh = SubResource( 4 )
 
 [node name="Atmosphere" type="MeshInstance" parent="."]
-mesh = SubResource( 5 )
+mesh = SubResource( 6 )
 material/0 = null
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 2 )
 grid_height = 5
 cell_height = 1.0
-possibility_cube_material = SubResource( 6 )
-voxel_inside_material = SubResource( 7 )
-voxel_outside_material = SubResource( 8 )
+possibility_cube_material = SubResource( 7 )
+voxel_inside_material = SubResource( 8 )
+voxel_outside_material = SubResource( 9 )
 
 [node name="GridMesh" type="MeshInstance" parent="VoxelGrid"]
 visible = false
-material_override = SubResource( 9 )
+material_override = SubResource( 10 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 14 )
-subdivisions = 2
 
 [node name="WFC" type="Node" parent="."]
 script = ExtResource( 1 )
@@ -180,7 +179,7 @@ render_target_format_override = 3
 render_target_update_mode = 0
 
 [node name="Rect" type="TextureRect" parent="SDFGen/Viewport"]
-material = SubResource( 10 )
+material = SubResource( 11 )
 margin_right = 40.0
 margin_bottom = 40.0
 texture = ExtResource( 4 )
@@ -190,7 +189,7 @@ expand = true
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-texture = SubResource( 11 )
+texture = SubResource( 12 )
 expand = true
 stretch_mode = 1
 __meta__ = {
@@ -199,7 +198,7 @@ __meta__ = {
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
 visible = false
-mesh = SubResource( 13 )
+mesh = SubResource( 14 )
 material/0 = null
 
 [node name="MousePicker" type="MeshInstance" parent="."]
