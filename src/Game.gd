@@ -18,6 +18,7 @@ onready var _sun = get_node("Sun")
 onready var _sun_surface_mesh = _sun.get_node("Surface").mesh
 onready var _sun_atmosphere_mesh = _sun.get_node("Atmosphere").mesh
 onready var _sun_atmosphere_mat = _sun_atmosphere_mesh.surface_get_material(0)
+onready var _skybox = get_node("Skybox")
 
 
 func _ready() -> void:
@@ -28,7 +29,7 @@ func _ready() -> void:
 	add_child(planet_gimbal)
 	planet_gimbal.add_child(planet)
 	_planets.append(planet)
-	planet.setup(planet_gimbal, 100.0)
+	planet.setup(planet_gimbal, 150.0)
 	
 	_active_planet = planet
 	
@@ -70,6 +71,9 @@ func _process(delta: float) -> void:
 	_sun_atmosphere_mat.set_shader_param("u_sun_pos", sun_pos + dir_to_sun * 99999.0)
 	_sun_atmosphere_mat.set_shader_param("u_planet_radius", SunRadius)
 	_sun_atmosphere_mat.set_shader_param("u_atmosphere_radius", SunRadius * SunAtmosphereRadiusMod)
+	
+	_skybox.material_override.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
+	_skybox.global_transform.origin = get_viewport().get_camera().global_transform.origin
 
 func _on_GUI_on_mode_changed(mode):
 	_active_placement_mode = mode

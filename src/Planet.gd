@@ -98,7 +98,7 @@ func _process(delta):
 				meshes_added = 0
 				_wfc._wfc_finished = true
 				
-	_gimbal.rotation.y += delta * 0.5
+	_gimbal.rotation.y += delta * 0.05
 	rotation.y = -_gimbal.rotation.y
 		
 func _reset():
