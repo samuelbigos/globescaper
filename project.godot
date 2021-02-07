@@ -19,10 +19,10 @@ _global_script_classes=[ {
 "language": "GDScript",
 "path": "res://src/Icosphere.gd"
 }, {
-"base": "Node",
-"class": "PrototypeDB",
+"base": "Spatial",
+"class": "Planet",
 "language": "GDScript",
-"path": "res://src/PrototypeDB.gd"
+"path": "res://src/Planet.gd"
 }, {
 "base": "Spatial",
 "class": "VoxelGrid",
@@ -37,7 +37,7 @@ _global_script_classes=[ {
 _global_script_class_icons={
 "Game": "",
 "Icosphere": "",
-"PrototypeDB": "",
+"Planet": "",
 "VoxelGrid": "",
 "WaveFunctionCollapse": ""
 }
@@ -45,8 +45,13 @@ _global_script_class_icons={
 [application]
 
 config/name="Globescaper"
-run/main_scene="res://Game.tscn"
+run/main_scene="res://scenes/Game.tscn"
 config/icon="res://icon.png"
+
+[autoload]
+
+PrototypeDB="*res://src/PrototypeDB.gd"
+Globals="*res://scenes/Globals.tscn"
 
 [debug]
 

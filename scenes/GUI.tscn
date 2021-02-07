@@ -3,7 +3,8 @@
 [ext_resource path="res://assets/img/min.png" type="Texture" id=1]
 [ext_resource path="res://assets/img/info.png" type="Texture" id=2]
 [ext_resource path="res://assets/img/move.png" type="Texture" id=3]
-[ext_resource path="res://assets/scenes/GUI.gd" type="Script" id=4]
+[ext_resource path="res://src/GUI.gd" type="Script" id=4]
+
 
 [sub_resource type="ButtonGroup" id=1]
 

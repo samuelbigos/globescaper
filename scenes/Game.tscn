@@ -1,0 +1,73 @@
+[gd_scene load_steps=11 format=2]
+
+[ext_resource path="res://src/Game.gd" type="Script" id=1]
+[ext_resource path="res://src/Camera.gd" type="Script" id=2]
+[ext_resource path="res://scenes/Planet.tscn" type="PackedScene" id=3]
+[ext_resource path="res://assets/shaders/AtmosphereSun.shader" type="Shader" id=5]
+[ext_resource path="res://assets/env.tres" type="Environment" id=20]
+[ext_resource path="res://scenes/GUI.tscn" type="PackedScene" id=21]
+
+[sub_resource type="SpatialMaterial" id=4]
+flags_unshaded = true
+albedo_color = Color( 1, 0.803922, 0, 1 )
+
+[sub_resource type="SphereMesh" id=5]
+material = SubResource( 4 )
+
+[sub_resource type="ShaderMaterial" id=2]
+shader = ExtResource( 5 )
+shader_param/u_camera_pos = null
+shader_param/u_sun_pos = Vector3( 0, 0, 0 )
+shader_param/u_planet_centre = Vector3( 0, 0, 0 )
+shader_param/u_atmosphere_radius = 18.0
+shader_param/u_planet_radius = 20.0
+shader_param/u_atmosphere_samples = 20
+shader_param/u_optical_samples = 5
+shader_param/u_sun_intensity = 2.0
+shader_param/u_scattering_strength = 0.1
+shader_param/u_scattering_wavelengths = Vector3( 400, 420, 700 )
+shader_param/u_density_falloff = 7.289
+shader_param/u_volumetric_shadow_scale = 10.0
+shader_param/u_volumetric_shadows = false
+shader_param/u_phase_r = 2.374
+shader_param/u_mie_scatter_coeff = 500.0
+shader_param/u_mie_falloff = 20.0
+shader_param/u_mie_g = 0.76
+
+[sub_resource type="SphereMesh" id=3]
+material = SubResource( 2 )
+radius = 25.0
+height = 50.0
+
+[node name="Game" type="Spatial"]
+script = ExtResource( 1 )
+PlanetScene = ExtResource( 3 )
+SunRadius = 50.0
+
+[node name="HGimbal" type="Spatial" parent="."]
+script = ExtResource( 2 )
+MinDistance = 10.0
+
+[node name="VGimbal" type="Spatial" parent="HGimbal"]
+
+[node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 115.394 )
+far = 1000.0
+
+[node name="Sun" type="Spatial" parent="."]
+
+[node name="Surface" type="MeshInstance" parent="Sun"]
+mesh = SubResource( 5 )
+material/0 = null
+
+[node name="Atmosphere" type="MeshInstance" parent="Sun"]
+mesh = SubResource( 3 )
+material/0 = null
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = ExtResource( 20 )
+
+[node name="GUI" parent="." instance=ExtResource( 21 )]
+margin_left = 10.0
+margin_top = 10.0
+[connection signal="on_mode_changed" from="GUI" to="." method="_on_GUI_on_mode_changed"]

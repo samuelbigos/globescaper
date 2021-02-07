@@ -3,6 +3,7 @@ extends Spatial
 
 export var AutoRotate := false
 export var MinDistance := 0.0
+export var ZoomSpeed := 5.0
 
 var _velocity := Vector2()
 var _mouse_position := Vector2()
@@ -26,9 +27,9 @@ func update(delta: float) -> void:
 		_mouse_position = get_viewport().get_mouse_position()
 		
 	if Input.is_action_just_released("mousewheel_up"):
-		_camera.transform.origin.z = max(MinDistance,_camera.transform.origin.z - 1.0)
+		_camera.transform.origin.z = max(MinDistance,_camera.transform.origin.z - ZoomSpeed)
 	elif Input.is_action_just_released("mousewheel_down"):
-		_camera.transform.origin.z = min(999999.0,_camera.transform.origin.z + 1.0)
+		_camera.transform.origin.z = min(999999.0,_camera.transform.origin.z + ZoomSpeed)
 		
 	if AutoRotate:
 		_velocity.x = -20.0 * delta

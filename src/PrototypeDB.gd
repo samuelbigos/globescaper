@@ -1,5 +1,4 @@
 extends Node
-class_name PrototypeDB
 
 
 class Prototype:
@@ -17,6 +16,7 @@ class Prototype:
 	
 var _prototypes = []
 var _prototype_mesh_arrays = {}
+var _loaded_prototypes = false
 
 
 func get_prototypes(): return _prototypes
@@ -27,6 +27,9 @@ func get_prototype_mesh(mesh_name):
 	return null
 
 func load_prototypes():
+	if _loaded_prototypes:
+		return
+		
 	var filepaths = ["res://assets/prototypes_land.json",
 					"res://assets/prototypes_buildings.json"]
 				
@@ -94,4 +97,4 @@ func load_prototypes():
 					if mesh.get_surface_count() > 0:
 						_prototype_mesh_arrays[mesh_name] = mesh.surface_get_arrays(0)
 						
-	print(_prototypes.size())
+	_loaded_prototypes = true
