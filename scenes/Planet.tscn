@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=2]
+[gd_scene load_steps=34 format=2]
 
 [ext_resource path="res://src/WFC.gd" type="Script" id=1]
 [ext_resource path="res://src/VoxelGrid.gd" type="Script" id=2]
@@ -17,6 +17,7 @@
 [ext_resource path="res://bin/wfc.gdns" type="Script" id=15]
 [ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=16]
 [ext_resource path="res://assets/img/palette.png" type="Texture" id=17]
+[ext_resource path="res://scenes/Orbit.tscn" type="PackedScene" id=18]
 
 [sub_resource type="ShaderMaterial" id=1]
 shader = ExtResource( 16 )
@@ -161,6 +162,7 @@ material_override = SubResource( 10 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 14 )
+subdivisions = 2
 
 [node name="WFC" type="Node" parent="."]
 script = ExtResource( 1 )
@@ -207,3 +209,5 @@ material/0 = null
 
 [node name="DebugCamera" type="Camera" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
+
+[node name="Orbit" parent="." instance=ExtResource( 18 )]

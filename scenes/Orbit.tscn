@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://assets/meshes/torus.obj" type="ArrayMesh" id=1]
+[ext_resource path="res://assets/shaders/Orbit.shader" type="Shader" id=2]
+
+[sub_resource type="ShaderMaterial" id=6]
+shader = ExtResource( 2 )
+shader_param/u_camera_pos = null
+shader_param/u_orbit_centre = null
+shader_param/u_orbit_radius = null
+shader_param/u_width = -0.326
+shader_param/u_softness = 0.988
+
+[node name="Orbit" type="MeshInstance"]
+transform = Transform( 150, 0, 0, 0, 150, 0, 0, 0, 150, 0, 0, 0 )
+material_override = SubResource( 6 )
+mesh = ExtResource( 1 )
+material/0 = null

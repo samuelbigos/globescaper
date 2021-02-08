@@ -1,0 +1,19 @@
+[remap]
+
+importer="wavefront_obj"
+type="Mesh"
+path="res://.import/torus.obj-391cdd961a056ff6aa37c3d9175ec99b.mesh"
+
+[deps]
+
+files=[ "res://.import/torus.obj-391cdd961a056ff6aa37c3d9175ec99b.mesh" ]
+
+source_file="res://assets/meshes/torus.obj"
+dest_files=[ "res://.import/torus.obj-391cdd961a056ff6aa37c3d9175ec99b.mesh", "res://.import/torus.obj-391cdd961a056ff6aa37c3d9175ec99b.mesh" ]
+
+[params]
+
+generate_tangents=true
+scale_mesh=Vector3( 1, 1, 1 )
+offset_mesh=Vector3( 0, 0, 0 )
+optimize_mesh=true

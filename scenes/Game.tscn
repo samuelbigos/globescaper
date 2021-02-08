@@ -53,13 +53,14 @@ script = ExtResource( 1 )
 PlanetScene = ExtResource( 3 )
 SunRadius = 50.0
 
-[node name="HGimbal" type="Spatial" parent="."]
+[node name="Camera" type="Spatial" parent="."]
 script = ExtResource( 2 )
-MinDistance = 10.0
+MaxDistance = 300.0
+ZoomSpeed = 10.0
 
-[node name="VGimbal" type="Spatial" parent="HGimbal"]
+[node name="VGimbal" type="Spatial" parent="Camera"]
 
-[node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
+[node name="Camera" type="Camera" parent="Camera/VGimbal"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 115.394 )
 near = 1.0
 far = 1100.0
@@ -82,7 +83,7 @@ margin_left = 10.0
 margin_top = 10.0
 
 [node name="Skybox" type="MeshInstance" parent="."]
-transform = Transform( 500, 0, 0, 0, 500, 0, 0, 0, 500, 0, 0, 0 )
+transform = Transform( 1000, 0, 0, 0, 1000, 0, 0, 0, 1000, 0, 0, 0 )
 material_override = SubResource( 5 )
 mesh = ExtResource( 4 )
 material/0 = null

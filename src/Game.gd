@@ -13,12 +13,12 @@ var _active_placement_mode := 1
 var _planets = []
 var _active_planet : Planet
 
-onready var _camera = get_node("HGimbal")
+onready var _camera = get_node("Camera")
 onready var _sun = get_node("Sun")
 onready var _sun_surface_mesh = _sun.get_node("Surface").mesh
 onready var _sun_atmosphere_mesh = _sun.get_node("Atmosphere").mesh
 onready var _sun_atmosphere_mat = _sun_atmosphere_mesh.surface_get_material(0)
-onready var _skybox = get_node("Skybox")
+onready var _skybox = get_node("Skybox")	
 
 
 func _ready() -> void:
@@ -39,6 +39,7 @@ func _ready() -> void:
 	_sun_atmosphere_mesh.height = _sun_atmosphere_mesh.radius * 2.0	
 
 func _process(delta: float) -> void:
+	_camera._tracking_target = _active_planet
 	_camera.update(delta)
 	
 	# debug input stuff
@@ -64,6 +65,7 @@ func _process(delta: float) -> void:
 	
 	for planet in _planets:
 		planet._sun_pos = _sun.global_transform.origin
+		planet.update(delta)
 		
 	var sun_pos = _sun.global_transform.origin
 	var dir_to_sun = get_viewport().get_camera().global_transform.origin.normalized()
@@ -74,6 +76,8 @@ func _process(delta: float) -> void:
 	
 	_skybox.material_override.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_skybox.global_transform.origin = get_viewport().get_camera().global_transform.origin
+	
+	_camera.post_update(delta)
 
 func _on_GUI_on_mode_changed(mode):
 	_active_placement_mode = mode

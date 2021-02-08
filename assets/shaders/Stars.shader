@@ -78,7 +78,7 @@ float nebula_raymarch(vec3 origin, vec3 dir, out float density) {
 	for (int i = 0; i < steps; i++) {
 		vec3 sample = origin + dir * t;
 		density += fbm_3d(sample, period, octaves, persistence, 5.0);
-		t += (1.0f / float(steps)) * 5.0;
+		t += (1.0f / float(steps)) * 0.5;
 	}
 	density /= float(steps);
 	return t;
