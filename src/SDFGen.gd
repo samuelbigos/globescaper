@@ -16,6 +16,7 @@ var _draw_idx := 0
 func _ready():
 	_viewport = get_node("Viewport")
 	_viewport_tex = _viewport.get_node("Rect")
+	_viewport_tex.material = _viewport_tex.material.duplicate()
 	_viewport_mat = _viewport_tex.material
 	
 	var per_row = _sdf_max_width / _sdf_resolution

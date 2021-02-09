@@ -1,0 +1,29 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=2]
+
+[ext_resource path="res://assets/shaders/Atmosphere.shader" type="Shader" id=1]
+
+[resource]
+shader = ExtResource( 1 )
+shader_param/u_sdf_resolution = null
+shader_param/u_sdf_volume_radius = null
+shader_param/u_sdf_dist_mod = null
+shader_param/u_sdf_quintic_filter = null
+shader_param/u_rows = null
+shader_param/u_cols = null
+shader_param/u_camera_pos = null
+shader_param/u_sun_pos = null
+shader_param/u_planet_centre = Vector3( 0, 0, 0 )
+shader_param/u_atmosphere_radius = 15.0
+shader_param/u_planet_radius = 11.069
+shader_param/u_atmosphere_samples = 28
+shader_param/u_optical_samples = 5
+shader_param/u_sun_intensity = 1.5
+shader_param/u_scattering_strength = 0.95
+shader_param/u_scattering_wavelengths = Vector3( 700, 530, 440 )
+shader_param/u_density_falloff = 2.5
+shader_param/u_volumetric_shadow_scale = 14.17
+shader_param/u_volumetric_shadows = false
+shader_param/u_phase_r = 15.0
+shader_param/u_mie_scatter_coeff = 300.0
+shader_param/u_mie_falloff = 10.0
+shader_param/u_mie_g = 0.76

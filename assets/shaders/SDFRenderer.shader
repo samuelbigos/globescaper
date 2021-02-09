@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded;
+render_mode unshaded, world_vertex_coords;
 
 uniform sampler2D u_sdf;
 uniform int u_sdf_resolution;
@@ -14,7 +14,7 @@ varying vec3 SDF_TEX_SIZE;
 varying vec3 INV_SDF_TEX_SIZE;
 
 void vertex() {
-	u_vertex = VERTEX;	
+	u_vertex = VERTEX;
 	SDF_TEX_SIZE = vec3(float(u_sdf_resolution));
 	INV_SDF_TEX_SIZE = 1.0 / SDF_TEX_SIZE;
 }
@@ -88,9 +88,4 @@ void fragment() {
 	}
 	float diff = float(steps) / float(max_steps);
 	ALBEDO = vec3(diff);
-	
-//	ALBEDO = vec3(0.0);
-//	if (hit)
-//		ALBEDO = vec3(1.0);
-//	ALBEDO = vec3(1.0 - res);
 }

@@ -2,7 +2,6 @@ extends Spatial
 class_name Planet
 
 # export
-export var LandMaterial : Material
 export var WaterDeepColour : Color
 export var WaterShallowColour : Color
 export var WaterHeight = 1.0
@@ -11,9 +10,13 @@ export var AutoGenerate = false
 # members
 var _cell_idx_to_surface = {}
 var _cell_idx_to_prototype = {}
+var _land_material : Material
 var _water_material : Material
-var _sun_pos = Vector3(0.0, 0.0, 0.0)
-var _gimbal : Node
+var _sun: Spatial = null
+var _gimbal : Spatial = null
+var _orbiting_body: Spatial = null
+var _satellites = []
+var _orbit_speed: float
 
 # nodes
 onready var _globe_wireframe = get_node("GlobeWireframe")
@@ -36,11 +39,27 @@ func _ready() -> void:
 	#_wfc._wfc_finished = true
 	_setup_meshes()
 	
-func setup(var gimbal: Node, var orbit_radius: float):
+func setup(var gimbal: Node, var orbit_radius: float, var orbiting_body: Spatial, var sun: Spatial, var planet_scene: PackedScene, var satellites: int, orbit_speed: float):
+	_orbiting_body = orbiting_body
+	_sun = sun
 	_gimbal = gimbal
-	global_transform.origin = Vector3(orbit_radius, 0.0, 0.0)
+	_orbit_speed = orbit_speed
+	global_transform.origin = orbiting_body.global_transform.origin + Vector3(orbit_radius, 0.0, 0.0)
 	
-	_orbit.material_override.set_shader_param("u_orbit_radius", 150.0)
+	_orbit.material_override = _orbit.material_override.duplicate()
+	_orbit.material_override.set_shader_param("u_orbit_radius", orbit_radius)
+	_orbit.scale = Vector3(orbit_radius, orbit_radius, orbit_radius)
+	
+	_atmosphere.material_override = _atmosphere.material_override.duplicate()
+	
+	# satellites
+	if satellites > 0:
+		var planet = planet_scene.instance()
+		var planet_gimbal = Spatial.new()
+		add_child(planet_gimbal)
+		planet_gimbal.add_child(planet)
+		_satellites.append(planet)
+		planet.setup(planet_gimbal, 50.0, self, _sun, planet_scene, 0, 0.5)
 	
 func _setup_meshes():
 	var ocean_mesh = ArrayMesh.new()
@@ -48,6 +67,11 @@ func _setup_meshes():
 	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
 		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + WaterHeight)
 	
+	_globe_land.mesh = _globe_land.mesh.duplicate()
+	_globe_land.material_override = _globe_land.material_override.duplicate()
+	_land_material = _globe_land.material_override
+	
+	_globe_ocean.material_override = _globe_ocean.material_override.duplicate()
 	_water_material = _globe_ocean.material_override
 	ocean_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, ocean_mesh_array)
 	_water_material.set_shader_param("u_deep_colour", WaterDeepColour)
@@ -67,24 +91,22 @@ func _setup_meshes():
 #	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 #	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
-func update(delta):
+func update(delta):	
 	var local_cam_pos = get_viewport().get_camera().global_transform.origin - global_transform.origin
-	var local_sun_pos = _sun_pos - global_transform.origin
-	LandMaterial.set_shader_param("u_camera_pos", local_cam_pos)
-	_sdf.set_sdf_params_on_mat(LandMaterial)
-	LandMaterial.set_shader_param("u_sun_pos", local_sun_pos)
+	var local_sun_pos = _sun.global_transform.origin - global_transform.origin
+	_land_material.set_shader_param("u_camera_pos", local_cam_pos)
+	_sdf.set_sdf_params_on_mat(_land_material)
+	_land_material.set_shader_param("u_sun_pos", local_sun_pos)
 	
 	_water_material.set_shader_param("u_camera_pos", local_cam_pos)
 	_sdf.set_sdf_params_on_mat(_water_material)
 	_water_material.set_shader_param("u_sun_pos", local_sun_pos)
 	
-	var atmosphere_mat = _atmosphere.mesh.surface_get_material(0)
+	var atmosphere_mat = _atmosphere.material_override
 	atmosphere_mat.set_shader_param("u_camera_pos", local_cam_pos)
 	_sdf.set_sdf_params_on_mat(atmosphere_mat)
 	atmosphere_mat.set_shader_param("u_sun_pos", local_sun_pos)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius)
-	
-	#_orbit.material_override.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	
 	# process wfc here because gdnative doesn't like being called from anywhere else
 	if not _wfc._wfc_finished:
@@ -102,12 +124,17 @@ func update(delta):
 				meshes_added = 0
 				_wfc._wfc_finished = true
 				
-	_gimbal.rotation.y += delta * 0.5
+	_gimbal.global_transform.origin = _orbiting_body.global_transform.origin
+	_gimbal.rotation.y += delta * _orbit_speed
 	rotation.y = -_gimbal.rotation.y
 	
 	_orbit.global_transform.origin = _gimbal.global_transform.origin
 	_orbit.material_override.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_orbit.material_override.set_shader_param("u_orbit_centre", get_node("Orbit").global_transform.origin)
+	
+	# satellites
+	for satellite in _satellites:
+		satellite.update(delta)
 		
 func _reset():
 	_wfc.reset()
@@ -175,10 +202,13 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 			
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
-		array_mesh.surface_set_material(array_mesh.get_surface_count() - 1, LandMaterial)
 		_cell_idx_to_surface[cell.index].append(array_mesh.get_surface_count() - 1)
 		
 	# draw these meshes on the sdf
+	print(self)
+	print(cell)
+	print(prototype)
+	print(sdf_verts.size())
 	_sdf.set_mesh_texture(sdf_verts)
 	
 	return true

@@ -29,7 +29,7 @@ func _ready() -> void:
 	add_child(planet_gimbal)
 	planet_gimbal.add_child(planet)
 	_planets.append(planet)
-	planet.setup(planet_gimbal, 150.0)
+	planet.setup(planet_gimbal, 200.0, _sun, _sun, PlanetScene, 1, 0.1)
 	
 	_active_planet = planet
 	
@@ -64,7 +64,6 @@ func _process(delta: float) -> void:
 		_active_planet._reset()
 	
 	for planet in _planets:
-		planet._sun_pos = _sun.global_transform.origin
 		planet.update(delta)
 		
 	var sun_pos = _sun.global_transform.origin

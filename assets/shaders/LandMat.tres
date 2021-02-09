@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" load_steps=3 format=2]
+
+[ext_resource path="res://assets/img/palette.png" type="Texture" id=1]
+[ext_resource path="res://assets/shaders/LandShader.shader" type="Shader" id=2]
+
+[resource]
+shader = ExtResource( 2 )
+shader_param/u_sun_pos = null
+shader_param/u_camera_pos = null
+shader_param/u_sdf_resolution = null
+shader_param/u_sdf_volume_radius = null
+shader_param/u_sdf_dist_mod = null
+shader_param/u_rows = null
+shader_param/u_cols = null
+shader_param/u_sdf_quintic_filter = null
+shader_param/u_texture = ExtResource( 1 )
