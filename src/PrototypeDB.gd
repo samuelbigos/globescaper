@@ -30,6 +30,7 @@ func load_prototypes():
 	if _loaded_prototypes:
 		return
 		
+	#var filepaths = ["res://assets/prototypes_land.json"]
 	var filepaths = ["res://assets/prototypes_land.json",
 					"res://assets/prototypes_buildings.json"]
 				

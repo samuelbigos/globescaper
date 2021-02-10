@@ -10,6 +10,13 @@ uniform int u_sdf_resolution;
 uniform float u_sdf_volume_radius;
 uniform float u_sdf_dist_mod;
 uniform int u_draw_idx;
+uniform float u_planet_radius;
+
+uniform bool u_do_destroy;
+uniform vec3 u_destroy_pos;
+uniform bool u_do_create;
+uniform vec3 u_create_pos;
+uniform float u_deform_radius;
 
 uniform bool u_use_bounding_sphere;
 uniform vec3 u_bound_origin;
@@ -89,9 +96,27 @@ int intersect_tri(vec3 ray_origin, vec3 ray_dir, vec3 v0, vec3 v1, vec3 v2) {
         return 0;
 }
 
+float opSmoothSubtraction( float d1, float d2, float k ) {
+    float h = clamp( 0.5 - 0.5*(d2+d1)/k, 0.0, 1.0 );
+    return mix( d2, -d1, h ) + k*h*(1.0-h); }
+	
+float opSmoothUnion( float d1, float d2, float k ) {
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1.0 );
+    return mix( d2, d1, h ) - k*h*(1.0-h); }
+
 void fragment() {
 	// flip x when writing the sdf because reasons
 	vec3 uv = sdf_uv_to_world_pos(vec2(1.0 - UV.x, UV.y));
+	
+	// get current distance at this UV on the SDF
+	vec4 current = texture(u_sdf, UV);
+	if (u_draw_idx == 0)
+	{
+		float sd_sphere = length(uv) - u_planet_radius;
+		sd_sphere /= u_sdf_dist_mod;
+		//current = vec4(sd_sphere * 0.5 + 0.5, 0.0, 0.0, 1.0);
+		current = vec4(1.0, 0.0, 0.0, 1.0);
+	}
 	
 	// skip this pixel if it's out of the supplied bounds
 	bool skip = false;
@@ -100,9 +125,6 @@ void fragment() {
 		if (length(u_bound_origin - uv) > u_bound_radius)
 			skip = true;
 	}
-	
-	vec4 current = texture(u_sdf, UV);
-	
 	if (!skip)
 	{
 		float closest_dist = 999999.9;
@@ -135,7 +157,6 @@ void fragment() {
 		}
 		float dist = sqrt(closest_dist);
 		dist /= u_sdf_dist_mod;
-		dist = clamp(dist, 0.0, 1.0);
 		
 		// determine if we're inside or outside the mesh based on the intersection test results.
 		int odd_intersections = 0;
@@ -144,28 +165,20 @@ void fragment() {
 		bool outside = odd_intersections < 2;
 		dist = dist * (outside ? 1.0 : -1.0);
 		
-		// on the first draw we have no previous dist to compare with so just dump our new dist.
-		if (u_draw_idx == 0)
-		{
-			COLOR = vec4(dist * 0.5 + 0.5, 0.0, 0.0, 1.0);
-		}
-		else
-		{
-			float prev_dist = current.r * 2.0 - 1.0;
-			float final = min(prev_dist, dist) * 0.5 + 0.5;
-			COLOR = vec4(final, 0.0, 0.0, 1.0);
-			//COLOR = vec4(final, step(final, 0.5), 0.0, 1.0);
-		}
+		float prev_dist = current.r * 2.0 - 1.0;
+		current = vec4(min(prev_dist, dist) * 0.5 + 0.5, 0.0, 0.0, 1.0);
 	}
-	else
-	{
-		if (u_draw_idx == 0)
-		{
-			COLOR = vec4(1.0, 0.0, 0.0, 1.0);
-		}
-		else
-		{
-			COLOR = current;
-		}
+	
+	if (u_do_create) {
+		float prev_dist = current.r * 2.0 - 1.0;
+		float sd_sphere = length(uv - u_create_pos) - u_deform_radius;
+		current = vec4(opSmoothUnion(sd_sphere, prev_dist, 0.1) * 0.5 + 0.5, 0.0, 0.0, 1.0);
 	}
+	if (u_do_destroy) {
+		float prev_dist = current.r * 2.0 - 1.0;
+		float sd_sphere = length(uv - u_destroy_pos) - (u_deform_radius * 1.0);
+		current = vec4(opSmoothSubtraction(sd_sphere, prev_dist, 0.0) * 0.5 + 0.5, 0.0, 0.0, 1.0);
+	}
+	
+	COLOR = current;
 }

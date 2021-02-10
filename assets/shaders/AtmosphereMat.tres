@@ -3,6 +3,7 @@
 [ext_resource path="res://assets/shaders/Atmosphere.shader" type="Shader" id=1]
 
 [resource]
+render_priority = 1
 shader = ExtResource( 1 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null

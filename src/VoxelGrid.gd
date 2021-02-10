@@ -210,7 +210,7 @@ func interpolate_corners(var corners, var x: float, var y: float) -> Vector3:
 	return lerp(new_x1, new_x2, y)
 			
 func intersect(var ray_origin: Vector3, var ray_dir: Vector3, var radius: float) -> Voxel:
-	var centre := Vector3(0.0, 0.0, 0.0)
+	var centre := global_transform.origin
 	var dist_to_centre = _nearest_point_on_line(ray_origin, ray_dir, centre).distance_to(centre)
 	if dist_to_centre > radius:
 		return null
@@ -229,7 +229,7 @@ func intersect(var ray_origin: Vector3, var ray_dir: Vector3, var radius: float)
 			if ray_dir.dot((point).normalized()) > 0.0:
 				continue # ignore voxels on the dark side of the planet
 			
-			var dist = _nearest_point_on_line(ray_origin, ray_dir, point).distance_to(point)
+			var dist = _nearest_point_on_line(ray_origin, ray_dir, centre + point).distance_to(centre + point)
 			if dist < closest_val:
 				closest_val = dist
 				closest = v

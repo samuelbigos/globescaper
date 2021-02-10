@@ -1,16 +1,19 @@
-extends Node
+extends Spatial
 
-export var _sdf_max_width : int = 4096
+export var _sdf_max_width : int = 4096 # 16384 # 6114
 export var _sdf_resolution : int = 256
 export var _sdf_volume_radius := 18.0
 export var _sdf_dist_mod := 5.0
 export var _mesh_image_size = Vector2(64, 64)
+export var InitialSDFRadius = 10.0
 
 var _sdf_volume_mat : Material
 var _viewport : Viewport
 var _viewport_tex : TextureRect
 var _viewport_mat : Material
 var _draw_idx := 0
+var _pending_destroy := 0
+var _pending_create := 0
 
 
 func _ready():
@@ -32,19 +35,51 @@ func _ready():
 	_viewport_mat.set_shader_param("u_sdf_resolution", _sdf_resolution)
 	_viewport_mat.set_shader_param("u_sdf_volume_radius", _sdf_volume_radius)
 	_viewport_mat.set_shader_param("u_sdf_dist_mod", _sdf_dist_mod)
+	_viewport_mat.set_shader_param("u_planet_radius", InitialSDFRadius)
+	_viewport_mat.set_shader_param("u_do_destroy", false)
+	_viewport_mat.set_shader_param("u_do_create", false)
+	_viewport_mat.set_shader_param("u_use_bounding_sphere", false)
 		
-	_sdf_volume_mat = $SDFVolume.mesh.surface_get_material(0)
+	_sdf_volume_mat = $SDFVolume.material_override
 	_sdf_volume_mat.set_shader_param("u_rows", int(rows))
 	_sdf_volume_mat.set_shader_param("u_cols", int(cols))
 	_sdf_volume_mat.set_shader_param("u_sdf_volume_radius", _sdf_volume_radius)
 	_sdf_volume_mat.set_shader_param("u_sdf_dist_mod", _sdf_dist_mod)
 	_sdf_volume_mat.set_shader_param("u_sdf_resolution", _sdf_resolution)
-	$SDFVolume.mesh.size = Vector3(_sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0, _sdf_volume_radius * 2.0)
+	$SDFVolume.mesh.radius = _sdf_volume_radius
+	$SDFVolume.mesh.height = _sdf_volume_radius * 2.0
 	
 func _process(_delta) -> void:
-	_sdf_volume_mat.set_shader_param("u_cam_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf_volume_mat.set_shader_param("u_sdf", get_texture())
 	$SDFPreview.set_texture(get_texture())
+	
+	if _pending_destroy > 0:
+		_pending_destroy = false
+		_viewport_mat.set_shader_param("u_do_destroy", false)
+	if _pending_create > 0:
+		_pending_create = false
+		_viewport_mat.set_shader_param("u_do_create", false)
+		
+	_pending_destroy += 1
+	_pending_create += 1
+	
+func set_sdf_planet_params(var sun_pos, var cam_pos):
+	_sdf_volume_mat.set_shader_param("u_sun_pos", sun_pos)
+	_sdf_volume_mat.set_shader_param("u_cam_pos", cam_pos)
+	
+func destroy_point(var point: Vector3):
+	_viewport_mat.set_shader_param("u_do_destroy", true)
+	_viewport_mat.set_shader_param("u_destroy_pos", point)
+	_viewport_mat.set_shader_param("u_deform_radius", 2.5)
+	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
+	_pending_destroy = 0
+	
+func create_point(var point: Vector3):
+	_viewport_mat.set_shader_param("u_do_create", true)
+	_viewport_mat.set_shader_param("u_create_pos", point)
+	_viewport_mat.set_shader_param("u_deform_radius", 2.5)
+	_viewport.set_update_mode(Viewport.UPDATE_ONCE)
+	_pending_create = 0
 		
 func reset():
 	_draw_idx = 0	
@@ -108,3 +143,4 @@ func set_sdf_params_on_mat(var material : Material) -> void:
 	material.set_shader_param("u_sdf_volume_radius", _sdf_volume_radius)
 	material.set_shader_param("u_sdf_dist_mod", _sdf_dist_mod)
 	material.set_shader_param("u_sdf_resolution", _sdf_resolution)
+	

@@ -3,10 +3,10 @@
 [ext_resource path="res://src/WFC.gd" type="Script" id=1]
 [ext_resource path="res://src/VoxelGrid.gd" type="Script" id=2]
 [ext_resource path="res://src/SDFGen.gd" type="Script" id=3]
+[ext_resource path="res://assets/shaders/PlanetSDFRenderer.shader" type="Shader" id=4]
 [ext_resource path="res://src/Planet.gd" type="Script" id=5]
 [ext_resource path="res://assets/shaders/PossibilityCube.shader" type="Shader" id=6]
 [ext_resource path="res://assets/shaders/VoxelSpereOutside.shader" type="Shader" id=7]
-[ext_resource path="res://assets/shaders/SDFRenderer.shader" type="Shader" id=8]
 [ext_resource path="res://assets/shaders/WaterShader.shader" type="Shader" id=9]
 [ext_resource path="res://assets/shaders/Wireframe.shader" type="Shader" id=10]
 [ext_resource path="res://assets/shaders/SDFGen.shader" type="Shader" id=11]
@@ -63,6 +63,12 @@ shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
 shader_param/u_sdf_dist_mod = null
 shader_param/u_draw_idx = null
+shader_param/u_planet_radius = null
+shader_param/u_do_destroy = null
+shader_param/u_destroy_pos = null
+shader_param/u_do_create = null
+shader_param/u_create_pos = null
+shader_param/u_deform_radius = null
 shader_param/u_use_bounding_sphere = null
 shader_param/u_bound_origin = null
 shader_param/u_bound_radius = null
@@ -74,17 +80,17 @@ load_path = "res://.import/1px.png-79513d48375d5473641a5fe3ad37cf05.stex"
 [sub_resource type="ViewportTexture" id=11]
 viewport_path = NodePath("SDFGen/Viewport")
 
-[sub_resource type="ShaderMaterial" id=12]
-shader = ExtResource( 8 )
+[sub_resource type="ShaderMaterial" id=15]
+shader = ExtResource( 4 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
 shader_param/u_sdf_dist_mod = null
 shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_cam_pos = null
+shader_param/u_sun_pos = null
 
-[sub_resource type="CubeMesh" id=13]
-material = SubResource( 12 )
+[sub_resource type="SphereMesh" id=16]
 
 [sub_resource type="SphereMesh" id=14]
 radius = 0.5
@@ -114,7 +120,6 @@ material/0 = null
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 2 )
-grid_height = 5
 cell_height = 1.0
 possibility_cube_material = SubResource( 5 )
 voxel_inside_material = SubResource( 6 )
@@ -163,7 +168,8 @@ __meta__ = {
 
 [node name="SDFVolume" type="MeshInstance" parent="SDFGen"]
 visible = false
-mesh = SubResource( 13 )
+material_override = SubResource( 15 )
+mesh = SubResource( 16 )
 material/0 = null
 
 [node name="MousePicker" type="MeshInstance" parent="."]

@@ -39,7 +39,14 @@ func _ready() -> void:
 	#_wfc._wfc_finished = true
 	_setup_meshes()
 	
-func setup(var gimbal: Node, var orbit_radius: float, var orbiting_body: Spatial, var sun: Spatial, var planet_scene: PackedScene, var satellites: int, orbit_speed: float):
+func setup(var gimbal: Node, 
+			var orbit_radius: float, 
+			var orbiting_body: Spatial, 
+			var sun: Spatial, 
+			var planet_scene: PackedScene, 
+			var satellites: int, 
+			var orbit_speed: float):
+				
 	_orbiting_body = orbiting_body
 	_sun = sun
 	_gimbal = gimbal
@@ -108,6 +115,8 @@ func update(delta):
 	atmosphere_mat.set_shader_param("u_sun_pos", local_sun_pos)
 	atmosphere_mat.set_shader_param("u_planet_radius", _icosphere.radius)
 	
+	_sdf.set_sdf_planet_params(local_sun_pos, local_cam_pos)
+	
 	# process wfc here because gdnative doesn't like being called from anywhere else
 	if not _wfc._wfc_finished:
 		var added_mesh = false
@@ -160,6 +169,13 @@ func _do_mouse_picking(camera: Node, mode: int) -> void:
 			_voxel_grid.set_voxel(voxel, mode)
 			_wfc.set_voxel(voxel, _voxel_grid.get_voxels(), _icosphere.get_polys())
 			_reset()
+			
+		if Input.is_action_just_released("c"):
+			_sdf.create_point(_voxel_grid.get_verts()[voxel.vert])
+			
+		if Input.is_action_just_released("x"):
+			_sdf.destroy_point(_voxel_grid.get_verts()[voxel.vert])
+			
 	else:
 		_mouse_picker.visible = false
 
@@ -205,10 +221,6 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 		_cell_idx_to_surface[cell.index].append(array_mesh.get_surface_count() - 1)
 		
 	# draw these meshes on the sdf
-	print(self)
-	print(cell)
-	print(prototype)
-	print(sdf_verts.size())
 	_sdf.set_mesh_texture(sdf_verts)
 	
 	return true

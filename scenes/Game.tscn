@@ -61,7 +61,7 @@ ZoomSpeed = 10.0
 [node name="VGimbal" type="Spatial" parent="Camera"]
 
 [node name="Camera" type="Camera" parent="Camera/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 115.394 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 74.5903 )
 near = 1.0
 far = 1100.0
 
