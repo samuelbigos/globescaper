@@ -90,4 +90,5 @@ material/0 = null
 script = ExtResource( 7 )
 NebulaHigh = Color( 0.890196, 0.247059, 0.737255, 1 )
 NebulaLow = Color( 0.482353, 0.192157, 0.827451, 1 )
+
 [connection signal="on_mode_changed" from="GUI" to="." method="_on_GUI_on_mode_changed"]

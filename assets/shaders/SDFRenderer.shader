@@ -78,7 +78,7 @@ bool raymarch(vec3 ro, vec3 rd, out float dist) {
 			return true;
 		}
 		res = min(res, dist / t);
-		t = max(t + dist, 0.001f);
+		t += max(dist, 0.001f);
 	}
 	return false;
 }
