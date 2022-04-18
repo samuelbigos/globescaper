@@ -1,4 +1,4 @@
 extends Node
 
-export var MaxWFCStepsPerFrame = 10
-export var MaxNewMeshesPerFrame = 3
+export var MaxWFCStepsPerFrame = 100
+export var MaxNewMeshesPerFrame = 1

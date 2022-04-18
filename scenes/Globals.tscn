@@ -4,4 +4,3 @@
 
 [node name="Globals" type="Node"]
 script = ExtResource( 1 )
-MaxNewMeshesPerFrame = 1

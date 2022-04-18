@@ -120,6 +120,7 @@ material/0 = null
 
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 2 )
+grid_height = 4
 cell_height = 1.0
 possibility_cube_material = SubResource( 5 )
 voxel_inside_material = SubResource( 6 )
@@ -180,3 +181,4 @@ material/0 = null
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
 
 [node name="Orbit" parent="." instance=ExtResource( 18 )]
+visible = false

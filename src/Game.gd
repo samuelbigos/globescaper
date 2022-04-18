@@ -29,7 +29,7 @@ func _ready() -> void:
 	add_child(planet_gimbal)
 	planet_gimbal.add_child(planet)
 	_planets.append(planet)
-	planet.setup(planet_gimbal, 200.0, _sun, _sun, PlanetScene, 1, 0.1)
+	planet.setup(planet_gimbal, 200.0, _sun, _sun, PlanetScene, 0, 0.1)
 	
 	_active_planet = planet
 	
