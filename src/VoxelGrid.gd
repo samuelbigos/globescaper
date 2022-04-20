@@ -42,6 +42,8 @@ func get_verts(): return _grid_verts
 func get_voxels(): return _grid_voxels
 
 func create(var icosphere_verts, var icosphere_polys, var radius: float, var grid_radius: float):
+	cell_height = 0.5 + (0.5 - Globals.Size / 4.0)
+	
 	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
 	# with a 2D array
 	_grid_cells = []
@@ -267,6 +269,9 @@ func _create_voxel_sphere(var origin: Vector3, var inside: bool):
 	else:
 		voxel_sphere.get_mesh().surface_set_material(0, voxel_outside_material)
 	return voxel_sphere
+	
+func _process(delta):
+	_grid_mesh.visible = Globals.Grid
 
 #func _update_possibility_cube(cell, size):
 #	if size == 1 or _possibility_cubes.size() <= cell or _possibility_cubes[cell] == null:

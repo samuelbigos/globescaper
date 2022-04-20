@@ -1,19 +1,20 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://assets/img/min.png" type="Texture" id=1]
 [ext_resource path="res://assets/img/info.png" type="Texture" id=2]
 [ext_resource path="res://assets/img/move.png" type="Texture" id=3]
-[ext_resource path="res://assets/scenes/GUI.gd" type="Script" id=4]
+[ext_resource path="res://src/GUI.gd" type="Script" id=4]
+
+[sub_resource type="ButtonGroup" id=2]
 
 [sub_resource type="ButtonGroup" id=1]
+
+[sub_resource type="ButtonGroup" id=3]
 
 [node name="GUI" type="Control"]
 margin_right = 40.0
 margin_bottom = 40.0
 script = ExtResource( 4 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="TabContainer" type="TabContainer" parent="."]
 margin_right = 258.0
@@ -21,11 +22,8 @@ margin_bottom = 268.0
 size_flags_horizontal = 4
 size_flags_vertical = 4
 tab_align = 0
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
-[node name="Create" type="VBoxContainer" parent="TabContainer"]
+[node name="Options" type="VBoxContainer" parent="TabContainer"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
@@ -33,24 +31,62 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
-[node name="Mode" type="HBoxContainer" parent="TabContainer/Create"]
+[node name="FPS" type="Label" parent="TabContainer/Options"]
 margin_right = 250.0
-margin_bottom = 24.0
+margin_bottom = 14.0
+text = "FPS: "
 
-[node name="Info" type="Button" parent="TabContainer/Create/Mode"]
+[node name="Auto" type="MarginContainer" parent="TabContainer/Options"]
+margin_top = 18.0
+margin_right = 250.0
+margin_bottom = 48.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
+
+[node name="Auto" type="HBoxContainer" parent="TabContainer/Options/Auto"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Auto/Auto"]
 visible = false
 margin_right = 16.0
 margin_bottom = 24.0
 icon = ExtResource( 2 )
 
-[node name="Label" type="Label" parent="TabContainer/Create/Mode"]
+[node name="Label" type="Label" parent="TabContainer/Options/Auto/Auto"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Auto Generate:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Auto/Auto"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+group = SubResource( 2 )
+
+[node name="Mode" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 52.0
+margin_right = 250.0
+margin_bottom = 76.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Mode"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Mode"]
 margin_top = 5.0
 margin_right = 104.0
 margin_bottom = 19.0
 size_flags_horizontal = 3
-text = "Mode:"
+text = "Place Mode:"
 
-[node name="A" type="Label" parent="TabContainer/Create/Mode"]
+[node name="A" type="Label" parent="TabContainer/Options/Mode"]
 margin_left = 108.0
 margin_top = 5.0
 margin_right = 138.0
@@ -58,14 +94,14 @@ margin_bottom = 19.0
 text = "Land"
 align = 2
 
-[node name="ModeLandCheck" type="CheckBox" parent="TabContainer/Create/Mode"]
+[node name="ModeLandCheck" type="CheckBox" parent="TabContainer/Options/Mode"]
 margin_left = 142.0
 margin_right = 166.0
 margin_bottom = 24.0
 pressed = true
 group = SubResource( 1 )
 
-[node name="B" type="Label" parent="TabContainer/Create/Mode"]
+[node name="B" type="Label" parent="TabContainer/Options/Mode"]
 margin_left = 170.0
 margin_top = 5.0
 margin_right = 222.0
@@ -73,13 +109,177 @@ margin_bottom = 19.0
 text = "Building"
 align = 2
 
-[node name="ModeBuildingCheck" type="CheckBox" parent="TabContainer/Create/Mode"]
+[node name="ModeBuildingCheck" type="CheckBox" parent="TabContainer/Options/Mode"]
 margin_left = 226.0
 margin_right = 250.0
 margin_bottom = 24.0
 group = SubResource( 1 )
 
-[node name="Params" type="VBoxContainer" parent="TabContainer"]
+[node name="Water" type="MarginContainer" parent="TabContainer/Options"]
+margin_top = 80.0
+margin_right = 250.0
+margin_bottom = 110.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
+
+[node name="Water" type="HBoxContainer" parent="TabContainer/Options/Water"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Water/Water"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Water/Water"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Water:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Water/Water"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+
+[node name="Atmosphere" type="MarginContainer" parent="TabContainer/Options"]
+margin_top = 114.0
+margin_right = 250.0
+margin_bottom = 144.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
+
+[node name="Atmosphere" type="HBoxContainer" parent="TabContainer/Options/Atmosphere"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Atmosphere/Atmosphere"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Atmosphere/Atmosphere"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Atmosphere:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Atmosphere/Atmosphere"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+
+[node name="Dof" type="MarginContainer" parent="TabContainer/Options"]
+margin_top = 148.0
+margin_right = 250.0
+margin_bottom = 178.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
+
+[node name="Dof" type="HBoxContainer" parent="TabContainer/Options/Dof"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Dof/Dof"]
+visible = false
+margin_right = 16.0
+margin_bottom = 40.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Dof/Dof"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Depth of Field:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Dof/Dof"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+
+[node name="AutoRot" type="MarginContainer" parent="TabContainer/Options"]
+margin_top = 182.0
+margin_right = 250.0
+margin_bottom = 212.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
+
+[node name="AutoRot" type="HBoxContainer" parent="TabContainer/Options/AutoRot"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/AutoRot/AutoRot"]
+visible = false
+margin_right = 16.0
+margin_bottom = 40.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/AutoRot/AutoRot"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Idle Mode:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/AutoRot/AutoRot"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+
+[node name="Size" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 216.0
+margin_right = 250.0
+margin_bottom = 240.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Size"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Size"]
+margin_top = 5.0
+margin_right = 57.0
+margin_bottom = 19.0
+size_flags_horizontal = 3
+text = "Size"
+
+[node name="small" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 61.0
+margin_right = 124.0
+margin_bottom = 24.0
+pressed = true
+group = SubResource( 3 )
+text = "Small"
+
+[node name="med" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 128.0
+margin_right = 184.0
+margin_bottom = 24.0
+group = SubResource( 3 )
+text = "Med"
+
+[node name="large" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 188.0
+margin_right = 250.0
+margin_bottom = 24.0
+group = SubResource( 3 )
+text = "Large"
+
+[node name="Debug" type="VBoxContainer" parent="TabContainer"]
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -87,441 +287,67 @@ margin_left = 4.0
 margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
-rect_min_size = Vector2( 280, 0 )
-size_flags_horizontal = 3
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
-[node name="RaysPerPixel" type="HBoxContainer" parent="TabContainer/Params"]
-margin_right = 280.0
-margin_bottom = 22.0
-size_flags_horizontal = 3
+[node name="Grid" type="MarginContainer" parent="TabContainer/Debug"]
+margin_top = 18.0
+margin_right = 250.0
+margin_bottom = 48.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
 
-[node name="Info" type="Button" parent="TabContainer/Params/RaysPerPixel"]
+[node name="Grid" type="HBoxContainer" parent="TabContainer/Debug/Grid"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Debug/Grid/Grid"]
+visible = false
 margin_right = 16.0
-margin_bottom = 22.0
+margin_bottom = 24.0
 icon = ExtResource( 2 )
 
-[node name="Label" type="Label" parent="TabContainer/Params/RaysPerPixel"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 113.0
-margin_bottom = 18.0
-text = "Rays Per Pixel:"
-align = 2
-
-[node name="RaysPerPixelSlider" type="HSlider" parent="TabContainer/Params/RaysPerPixel"]
-margin_left = 117.0
-margin_right = 260.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 1.0
-max_value = 128.0
-value = 32.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="RaysPerPixel" type="Label" parent="TabContainer/Params/RaysPerPixel"]
-margin_left = 264.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "32"
-align = 2
-
-[node name="HSeparator10" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 26.0
-margin_right = 280.0
-margin_bottom = 30.0
-
-[node name="MaxRaymarchSteps" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 34.0
-margin_right = 280.0
-margin_bottom = 56.0
-size_flags_horizontal = 3
-
-[node name="Info" type="Button" parent="TabContainer/Params/MaxRaymarchSteps"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/MaxRaymarchSteps"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 155.0
-margin_bottom = 18.0
-text = "Max Raymarch Steps:"
-align = 2
-
-[node name="MaxRaymarchStepsSlider" type="HSlider" parent="TabContainer/Params/MaxRaymarchSteps"]
-margin_left = 159.0
-margin_right = 260.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 1.0
-max_value = 128.0
-value = 32.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="MaxRaymarchSteps" type="Label" parent="TabContainer/Params/MaxRaymarchSteps"]
-margin_left = 264.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "32"
-align = 2
-
-[node name="HSeparator" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 60.0
-margin_right = 280.0
-margin_bottom = 64.0
-
-[node name="DistanceMod" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 68.0
-margin_right = 280.0
-margin_bottom = 90.0
-size_flags_horizontal = 3
-
-[node name="Info" type="Button" parent="TabContainer/Params/DistanceMod"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/DistanceMod"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 112.0
-margin_bottom = 18.0
-text = "Distance Mod:"
-align = 2
-
-[node name="DistanceModSlider" type="HSlider" parent="TabContainer/Params/DistanceMod"]
-margin_left = 116.0
-margin_right = 248.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 1.0
-max_value = 50.0
-step = 0.01
-value = 10.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="DistanceMod" type="Label" parent="TabContainer/Params/DistanceMod"]
-margin_left = 252.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "10.0"
-align = 2
-
-[node name="HSeparator2" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 94.0
-margin_right = 280.0
-margin_bottom = 98.0
-
-[node name="EmissionMulti" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 102.0
-margin_right = 280.0
-margin_bottom = 124.0
-size_flags_horizontal = 3
-
-[node name="Info" type="Button" parent="TabContainer/Params/EmissionMulti"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/EmissionMulti"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 119.0
-margin_bottom = 18.0
-text = "Emission Multi:"
-align = 2
-
-[node name="EmissionMultiSlider" type="HSlider" parent="TabContainer/Params/EmissionMulti"]
-margin_left = 123.0
-margin_right = 256.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 0.1
-max_value = 5.0
-step = 0.1
-value = 1.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="EmissionMulti" type="Label" parent="TabContainer/Params/EmissionMulti"]
-margin_left = 260.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "1.0"
-align = 2
-
-[node name="HSeparator3" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 128.0
-margin_right = 280.0
-margin_bottom = 132.0
-
-[node name="EmissionRange" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 136.0
-margin_right = 280.0
-margin_bottom = 158.0
-size_flags_horizontal = 3
-
-[node name="Info" type="Button" parent="TabContainer/Params/EmissionRange"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/EmissionRange"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 124.0
-margin_bottom = 18.0
-text = "Emission Range:"
-align = 2
-
-[node name="EmissionRangeSlider" type="HSlider" parent="TabContainer/Params/EmissionRange"]
-margin_left = 128.0
-margin_right = 256.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 0.1
-max_value = 10.0
-step = 0.1
-value = 1.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="EmissionRange" type="Label" parent="TabContainer/Params/EmissionRange"]
-margin_left = 260.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "1.0"
-align = 2
-
-[node name="HSeparator4" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 162.0
-margin_right = 280.0
-margin_bottom = 166.0
-
-[node name="EmissionDropoff" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 170.0
-margin_right = 280.0
-margin_bottom = 192.0
-size_flags_horizontal = 3
-
-[node name="Info" type="Button" parent="TabContainer/Params/EmissionDropoff"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/EmissionDropoff"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 138.0
-margin_bottom = 18.0
-text = "Emission Drop-off:"
-align = 2
-
-[node name="EmissionDropoffSlider" type="HSlider" parent="TabContainer/Params/EmissionDropoff"]
-margin_left = 142.0
-margin_right = 256.0
-margin_bottom = 16.0
-size_flags_horizontal = 3
-min_value = 0.1
-max_value = 5.0
-step = 0.1
-value = 1.0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="EmissionDropoff" type="Label" parent="TabContainer/Params/EmissionDropoff"]
-margin_left = 260.0
-margin_top = 4.0
-margin_right = 280.0
-margin_bottom = 18.0
-text = "1.0"
-align = 2
-
-[node name="HSeparator5" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 196.0
-margin_right = 280.0
-margin_bottom = 200.0
-
-[node name="LightBounce" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 204.0
-margin_right = 280.0
-margin_bottom = 226.0
-
-[node name="Info" type="Button" parent="TabContainer/Params/LightBounce"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/LightBounce"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 107.0
-margin_bottom = 18.0
-text = "Light Bounce:"
-align = 2
-
-[node name="Container" type="Container" parent="TabContainer/Params/LightBounce"]
-margin_left = 111.0
-margin_right = 280.0
-margin_bottom = 22.0
-size_flags_horizontal = 3
-
-[node name="LightBounceButton" type="CheckButton" parent="TabContainer/Params/LightBounce/Container"]
-anchor_right = 1.0
-margin_top = -13.0
+[node name="Label" type="Label" parent="TabContainer/Debug/Grid/Grid"]
+margin_top = 13.0
+margin_right = 170.0
 margin_bottom = 27.0
-focus_mode = 0
-size_flags_horizontal = 0
-size_flags_vertical = 0
-pressed = true
-enabled_focus_mode = 0
-align = 1
-__meta__ = {
-"_edit_use_anchors_": false
-}
+size_flags_horizontal = 3
+text = "Show Grid:"
 
-[node name="HSeparator6" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 230.0
-margin_right = 280.0
-margin_bottom = 234.0
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Debug/Grid/Grid"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
 
-[node name="De-Noise" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 238.0
-margin_right = 280.0
-margin_bottom = 260.0
+[node name="Visual" type="MarginContainer" parent="TabContainer/Debug"]
+visible = false
+margin_top = 18.0
+margin_right = 250.0
+margin_bottom = 48.0
+custom_constants/margin_top = -5
+custom_constants/margin_bottom = -5
 
-[node name="Info" type="Button" parent="TabContainer/Params/De-Noise"]
+[node name="Visual" type="HBoxContainer" parent="TabContainer/Debug/Visual"]
+margin_top = -5.0
+margin_right = 250.0
+margin_bottom = 35.0
+
+[node name="Info" type="Button" parent="TabContainer/Debug/Visual/Visual"]
+visible = false
 margin_right = 16.0
-margin_bottom = 22.0
+margin_bottom = 24.0
 icon = ExtResource( 2 )
 
-[node name="Label" type="Label" parent="TabContainer/Params/De-Noise"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 84.0
-margin_bottom = 18.0
-text = "De-Noise:"
-align = 2
-
-[node name="Container" type="Container" parent="TabContainer/Params/De-Noise"]
-margin_left = 88.0
-margin_right = 280.0
-margin_bottom = 22.0
+[node name="Label" type="Label" parent="TabContainer/Debug/Visual/Visual"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
 size_flags_horizontal = 3
+text = "WFC Visualisation:"
 
-[node name="DeNoiseButton" type="CheckButton" parent="TabContainer/Params/De-Noise/Container"]
-anchor_right = 1.0
-margin_top = -13.0
-focus_mode = 0
-size_flags_horizontal = 0
-size_flags_vertical = 0
-enabled_focus_mode = 0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="HSeparator7" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 264.0
-margin_right = 280.0
-margin_bottom = 268.0
-
-[node name="Physics Freeze" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 272.0
-margin_right = 280.0
-margin_bottom = 294.0
-
-[node name="Info" type="Button" parent="TabContainer/Params/Physics Freeze"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/Physics Freeze"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 119.0
-margin_bottom = 18.0
-text = "Physics Freeze:"
-align = 2
-
-[node name="Container" type="Container" parent="TabContainer/Params/Physics Freeze"]
-margin_left = 123.0
-margin_right = 280.0
-margin_bottom = 22.0
-size_flags_horizontal = 3
-
-[node name="FreezeButton" type="CheckButton" parent="TabContainer/Params/Physics Freeze/Container"]
-anchor_right = 1.0
-margin_top = -13.0
-focus_mode = 0
-size_flags_horizontal = 0
-size_flags_vertical = 0
-enabled_focus_mode = 0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="HSeparator8" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 298.0
-margin_right = 280.0
-margin_bottom = 302.0
-
-[node name="MouseSpawn" type="HBoxContainer" parent="TabContainer/Params"]
-margin_top = 306.0
-margin_right = 280.0
-margin_bottom = 328.0
-
-[node name="Info" type="Button" parent="TabContainer/Params/MouseSpawn"]
-margin_right = 16.0
-margin_bottom = 22.0
-icon = ExtResource( 2 )
-
-[node name="Label" type="Label" parent="TabContainer/Params/MouseSpawn"]
-margin_left = 20.0
-margin_top = 4.0
-margin_right = 146.0
-margin_bottom = 18.0
-text = "Mouse Spawn Balls:"
-align = 2
-
-[node name="Container" type="Container" parent="TabContainer/Params/MouseSpawn"]
-margin_left = 150.0
-margin_right = 280.0
-margin_bottom = 22.0
-size_flags_horizontal = 3
-
-[node name="MouseSpawnButton" type="CheckButton" parent="TabContainer/Params/MouseSpawn/Container"]
-anchor_right = 1.0
-margin_top = -13.0
-focus_mode = 0
-size_flags_horizontal = 0
-size_flags_vertical = 0
-enabled_focus_mode = 0
-__meta__ = {
-"_edit_use_anchors_": false
-}
-
-[node name="HSeparator9" type="HSeparator" parent="TabContainer/Params"]
-margin_top = 332.0
-margin_right = 280.0
-margin_bottom = 336.0
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Debug/Visual/Visual"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
 
 [node name="Minimise" type="Button" parent="."]
 margin_left = 231.0
@@ -529,9 +355,6 @@ margin_top = -1.0
 margin_right = 259.0
 margin_bottom = 21.0
 icon = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="Move" type="Button" parent="."]
 margin_left = 199.0
@@ -542,8 +365,19 @@ icon = ExtResource( 3 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
-[connection signal="toggled" from="TabContainer/Create/Mode/ModeLandCheck" to="." method="_on_ModeLandCheck_toggled"]
-[connection signal="toggled" from="TabContainer/Create/Mode/ModeBuildingCheck" to="." method="_on_ModeBuildingCheck_toggled"]
+
+[connection signal="button_up" from="TabContainer/Options/Auto/Auto/CheckButton" to="." method="_on_CheckButton_button_up"]
+[connection signal="toggled" from="TabContainer/Options/Mode/ModeLandCheck" to="." method="_on_ModeLandCheck_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Mode/ModeBuildingCheck" to="." method="_on_ModeBuildingCheck_toggled"]
+[connection signal="button_up" from="TabContainer/Options/Water/Water/CheckButton" to="." method="_on_Water_button_up"]
+[connection signal="button_up" from="TabContainer/Options/Atmosphere/Atmosphere/CheckButton" to="." method="_on_Atmosphere_button_up"]
+[connection signal="button_up" from="TabContainer/Options/Dof/Dof/CheckButton" to="." method="_on_Dof_button_up"]
+[connection signal="button_up" from="TabContainer/Options/AutoRot/AutoRot/CheckButton" to="." method="_on_Idle_button_up"]
+[connection signal="toggled" from="TabContainer/Options/Size/small" to="." method="_on_small_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Size/med" to="." method="_on_med_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Size/large" to="." method="_on_large_toggled"]
+[connection signal="button_up" from="TabContainer/Debug/Grid/Grid/CheckButton" to="." method="_on_Grid_button_up"]
+[connection signal="button_up" from="TabContainer/Debug/Visual/Visual/CheckButton" to="." method="_on_Visual_button_up"]
 [connection signal="pressed" from="Minimise" to="." method="_on_Minimise_pressed"]
 [connection signal="button_down" from="Move" to="." method="_on_Move_button_down"]
 [connection signal="button_up" from="Move" to="." method="_on_Move_button_up"]

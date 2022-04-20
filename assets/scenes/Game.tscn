@@ -57,7 +57,7 @@ shader = ExtResource( 19 )
 shader_param/u_sdf_resolution = null
 shader_param/u_sdf_volume_radius = null
 shader_param/u_sdf_dist_mod = null
-shader_param/u_sdf_quintic_filter = null
+shader_param/u_sdf_quintic_filter = false
 shader_param/u_rows = null
 shader_param/u_cols = null
 shader_param/u_camera_pos = null
@@ -65,7 +65,7 @@ shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
 shader_param/u_atmosphere_radius = 15.0
 shader_param/u_planet_radius = 11.069
-shader_param/u_atmosphere_samples = 28
+shader_param/u_atmosphere_samples = 25
 shader_param/u_optical_samples = 5
 shader_param/u_sun_intensity = 1.5
 shader_param/u_scattering_strength = 0.95
@@ -74,14 +74,14 @@ shader_param/u_density_falloff = 2.5
 shader_param/u_volumetric_shadow_scale = 14.17
 shader_param/u_volumetric_shadows = false
 shader_param/u_phase_r = 15.0
-shader_param/u_mie_scatter_coeff = 300.0
+shader_param/u_mie_scatter_coeff = 300.284
 shader_param/u_mie_falloff = 10.0
 shader_param/u_mie_g = 0.76
 
 [sub_resource type="SphereMesh" id=6]
 material = SubResource( 5 )
-radius = 20.0
-height = 40.0
+radius = 13.0
+height = 26.0
 
 [sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 12 )
@@ -165,12 +165,12 @@ material/0 = null
 
 [node name="HGimbal" type="Spatial" parent="."]
 script = ExtResource( 2 )
-MinDistance = 10.0
+MinDistance = 22.0
 
 [node name="VGimbal" type="Spatial" parent="HGimbal"]
 
 [node name="Camera" type="Camera" parent="HGimbal/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 0.976699, 0.214616, 0, -0.214616, 0.976699, 0, 6.3461, 27.9676 )
+transform = Transform( 1, 0, 0, 0, 0.984808, -0.173648, 0, 0.173648, 0.984808, 0, 0, 27.968 )
 
 [node name="SDFGen" type="Node" parent="."]
 script = ExtResource( 10 )
@@ -179,7 +179,6 @@ script = ExtResource( 10 )
 keep_3d_linear = true
 render_target_v_flip = true
 render_target_clear_mode = 1
-render_target_format_override = 3
 render_target_update_mode = 0
 
 [node name="Rect" type="TextureRect" parent="SDFGen/Viewport"]
@@ -207,7 +206,6 @@ material/0 = null
 
 [node name="SunGimbal" type="Spatial" parent="."]
 transform = Transform( -0.78672, 0, -0.617311, 0, 1, 0, 0.617311, 0, -0.78672, 0, 0, 0 )
-visible = false
 
 [node name="Sun" type="MeshInstance" parent="SunGimbal"]
 transform = Transform( 1, 0, -2.98023e-08, 0, 1, 0, 2.98023e-08, 0, 1, 63.2669, 21.1992, 2.28882e-05 )
@@ -229,7 +227,6 @@ voxel_inside_material = SubResource( 14 )
 voxel_outside_material = SubResource( 15 )
 
 [node name="GridMesh" type="MeshInstance" parent="VoxelGrid"]
-visible = false
 material_override = SubResource( 16 )
 
 [node name="Icosphere" type="Node" parent="."]
@@ -250,4 +247,5 @@ environment = ExtResource( 20 )
 [node name="GUI" parent="." instance=ExtResource( 21 )]
 margin_left = 10.0
 margin_top = 10.0
+
 [connection signal="on_mode_changed" from="GUI" to="." method="_on_GUI_on_mode_changed"]

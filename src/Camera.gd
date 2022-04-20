@@ -16,7 +16,9 @@ onready var _camera = get_node("VGimbal/Camera")
 
 func get_camera(): return _camera
 
-func update(delta: float) -> void:	
+func update(delta: float) -> void:
+	AutoRotate = Globals.AutoRotate
+	
 	if Input.is_action_just_pressed("mouse_right"):
 		_mouse_position = get_viewport().get_mouse_position()
 		enable_manual_control()

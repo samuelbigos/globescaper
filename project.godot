@@ -45,8 +45,12 @@ _global_script_class_icons={
 [application]
 
 config/name="Globescaper"
-run/main_scene="res://Game.tscn"
+run/main_scene="res://assets/scenes/Game.tscn"
 config/icon="res://icon.png"
+
+[autoload]
+
+Globals="*res://src/Globals.gd"
 
 [debug]
 
@@ -54,12 +58,9 @@ gdscript/warnings/integer_division=false
 
 [display]
 
-window/size/width=1440
-window/size/height=960
-window/size/test_width=1440
-window/size/test_height=960
+window/size/borderless=true
+window/size/fullscreen=true
 window/vsync/use_vsync=false
-window/stretch/mode="viewport"
 window/filters/msaa=3
 
 [importer_defaults]
@@ -99,17 +100,17 @@ mouse_left={
 }
 spacebar={
 "deadzone": 0.5,
-"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":32,"unicode":0,"echo":false,"script":null)
+"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":32,"physical_scancode":0,"unicode":0,"echo":false,"script":null)
  ]
 }
 i={
 "deadzone": 0.5,
-"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":73,"unicode":0,"echo":false,"script":null)
+"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":73,"physical_scancode":0,"unicode":0,"echo":false,"script":null)
  ]
 }
 r={
 "deadzone": 0.5,
-"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":82,"unicode":0,"echo":false,"script":null)
+"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":82,"physical_scancode":0,"unicode":0,"echo":false,"script":null)
  ]
 }
 mousewheel_up={
@@ -131,6 +132,6 @@ ui_click={
 [rendering]
 
 environment/default_clear_color=Color( 0, 0, 0, 1 )
-quality/filters/msaa=3
+quality/filters/msaa=2
 environment/default_environment="res://assets/env.tres"
 quality/size/height=960

@@ -8,7 +8,6 @@ export var water_deep_colour : Color
 export var water_shallow_colour : Color
 export var water_height = 0.5
 export var camera_follow := false
-export var wfc_auto := false
 export var SunAutoRotate := false
 export var MaxWFCStepsPerFrame = 10
 export var MaxNewMeshesPerFrame = 3
@@ -32,18 +31,19 @@ onready var _icosphere = get_node("Icosphere")
 onready var _prototype_db = get_node("PrototypeDB")
 onready var _mouse_picker = get_node("MousePicker")
 onready var _atmosphere = get_node("Atmosphere")
+onready var _env = get_node("WorldEnvironment")
 
 func _ready() -> void:
+	_reset_mesh()
+	
+	water_height = 0.5 + (0.5 - Globals.Size / 4.0)
+		
+	get_physics_process_delta_time()
 	_icosphere.generate()
 	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + water_height + 0.01)
 	_prototype_db.load_prototypes()
-	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not wfc_auto, _icosphere.get_polys())
-	#_wfc._wfc_finished = true
+	_wfc.setup(_voxel_grid.get_cells(), _prototype_db.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not Globals.AutoMode, _icosphere.get_polys())
 	_setup_meshes()
-	_update_gui();
-	
-func _update_gui():
-	pass
 	
 func _setup_meshes():
 	var ocean_mesh = ArrayMesh.new()
@@ -72,6 +72,8 @@ func _setup_meshes():
 
 func _process(delta: float) -> void:
 	_camera.update(delta)
+	_globe_ocean.visible = Globals.Water
+	_atmosphere.visible = Globals.Atmosphere
 		
 	land_material.set_shader_param("u_camera_pos", get_viewport().get_camera().global_transform.origin)
 	_sdf.set_sdf_params_on_mat(land_material)
@@ -105,8 +107,6 @@ func _process(delta: float) -> void:
 				$SDFGen/SDFVolume.visible = true
 				$SDFGen/SDFPreview.visible = true
 	
-	_update_gui()
-	
 	# process wfc here because gdnative doesn't like being called from anywhere else
 	if not _wfc._wfc_finished:
 		var added_mesh = false
@@ -129,6 +129,10 @@ func _process(delta: float) -> void:
 	# reset wfc
 	if Input.is_action_just_pressed("r"):
 		_reset()
+		
+	var cam = get_node("HGimbal/VGimbal/Camera")
+	_env.environment.dof_blur_far_distance = cam.transform.origin.z - 7.5
+	_env.environment.dof_blur_far_enabled = Globals.Dof
 		
 func _reset():
 	_wfc.reset()
