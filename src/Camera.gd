@@ -40,9 +40,9 @@ func update(delta: float) -> void:
 		rotation.y = lerp(rotation.y, atan2(_target.x, _target.z), delta * 1.0)		
 		_v_gimbal.rotation.x = lerp(_v_gimbal.rotation.x, asin(-_target.y), delta * 1.0)
 	else:
-		rotation.y += _velocity.x * 0.01
-		_v_gimbal.rotation.x = min(max(_v_gimbal.rotation.x + _velocity.y * 0.01, -PI * 0.5), PI * 0.5)
-		_velocity = lerp(_velocity, Vector2(0.0, 0.0), delta)
+		rotation.y += _velocity.x * 0.005
+		_v_gimbal.rotation.x = min(max(_v_gimbal.rotation.x + _velocity.y * 0.005, -PI * 0.5), PI * 0.5)
+		_velocity = lerp(_velocity, Vector2(0.0, 0.0), delta * 2.0)
 
 func set_orientation(lookat: Vector3) -> void:
 	if not _did_input:

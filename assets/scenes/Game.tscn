@@ -80,8 +80,8 @@ shader_param/u_mie_g = 0.76
 
 [sub_resource type="SphereMesh" id=6]
 material = SubResource( 5 )
-radius = 13.0
-height = 26.0
+radius = 10.0
+height = 30.0
 
 [sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 12 )

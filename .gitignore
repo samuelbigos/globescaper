@@ -1,2 +1,5 @@
 *.pdb
 *.ilk
+/export/*
+/.import/*
+/.vscode/*
