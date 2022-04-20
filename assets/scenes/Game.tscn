@@ -63,7 +63,7 @@ shader_param/u_cols = null
 shader_param/u_camera_pos = null
 shader_param/u_sun_pos = null
 shader_param/u_planet_centre = Vector3( 0, 0, 0 )
-shader_param/u_atmosphere_radius = 15.0
+shader_param/u_atmosphere_radius = 14.0
 shader_param/u_planet_radius = 11.069
 shader_param/u_atmosphere_samples = 25
 shader_param/u_optical_samples = 5
@@ -80,8 +80,8 @@ shader_param/u_mie_g = 0.76
 
 [sub_resource type="SphereMesh" id=6]
 material = SubResource( 5 )
-radius = 10.0
-height = 30.0
+radius = 14.0
+height = 28.0
 
 [sub_resource type="ShaderMaterial" id=7]
 shader = ExtResource( 12 )
