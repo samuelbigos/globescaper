@@ -36,7 +36,7 @@ shader_param/u_sdf_quintic_filter = null
 shader = ExtResource( 10 )
 
 [sub_resource type="SphereMesh" id=4]
-radius = 20.0
+radius = 22.0
 height = 40.0
 
 [sub_resource type="ShaderMaterial" id=5]
@@ -100,7 +100,6 @@ height = 1.0
 script = ExtResource( 5 )
 WaterDeepColour = Color( 0, 0.858824, 1, 1 )
 WaterShallowColour = Color( 0, 0.858824, 1, 1 )
-AutoGenerate = true
 
 [node name="GlobeOcean" type="MeshInstance" parent="."]
 material_override = SubResource( 1 )
@@ -121,7 +120,6 @@ material/0 = null
 [node name="VoxelGrid" type="Spatial" parent="."]
 script = ExtResource( 2 )
 grid_height = 4
-cell_height = 1.0
 possibility_cube_material = SubResource( 5 )
 voxel_inside_material = SubResource( 6 )
 voxel_outside_material = SubResource( 7 )
@@ -132,7 +130,6 @@ material_override = SubResource( 8 )
 
 [node name="Icosphere" type="Node" parent="."]
 script = ExtResource( 14 )
-subdivisions = 2
 
 [node name="WFC" type="Node" parent="."]
 script = ExtResource( 1 )

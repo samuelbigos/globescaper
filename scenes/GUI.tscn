@@ -1,19 +1,20 @@
-[gd_scene load_steps=6 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://assets/img/min.png" type="Texture" id=1]
 [ext_resource path="res://assets/img/info.png" type="Texture" id=2]
 [ext_resource path="res://assets/img/move.png" type="Texture" id=3]
 [ext_resource path="res://src/GUI.gd" type="Script" id=4]
 
+[sub_resource type="ButtonGroup" id=2]
+
 [sub_resource type="ButtonGroup" id=1]
+
+[sub_resource type="ButtonGroup" id=3]
 
 [node name="GUI" type="Control"]
 margin_right = 40.0
 margin_bottom = 40.0
 script = ExtResource( 4 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="TabContainer" type="TabContainer" parent="."]
 margin_right = 258.0
@@ -21,11 +22,8 @@ margin_bottom = 268.0
 size_flags_horizontal = 4
 size_flags_vertical = 4
 tab_align = 0
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
-[node name="Create" type="VBoxContainer" parent="TabContainer"]
+[node name="Options" type="VBoxContainer" parent="TabContainer"]
 anchor_right = 1.0
 anchor_bottom = 1.0
 margin_left = 4.0
@@ -33,24 +31,49 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
-[node name="Mode" type="HBoxContainer" parent="TabContainer/Create"]
+[node name="Auto" type="HBoxContainer" parent="TabContainer/Options"]
 margin_right = 250.0
-margin_bottom = 24.0
+margin_bottom = 40.0
 
-[node name="Info" type="Button" parent="TabContainer/Create/Mode"]
+[node name="Info" type="Button" parent="TabContainer/Options/Auto"]
 visible = false
 margin_right = 16.0
 margin_bottom = 24.0
 icon = ExtResource( 2 )
 
-[node name="Label" type="Label" parent="TabContainer/Create/Mode"]
+[node name="Label" type="Label" parent="TabContainer/Options/Auto"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Auto:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Auto"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
+group = SubResource( 2 )
+
+[node name="Mode" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 44.0
+margin_right = 250.0
+margin_bottom = 68.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Mode"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Mode"]
 margin_top = 5.0
 margin_right = 104.0
 margin_bottom = 19.0
 size_flags_horizontal = 3
-text = "Mode:"
+text = "Place Mode:"
 
-[node name="A" type="Label" parent="TabContainer/Create/Mode"]
+[node name="A" type="Label" parent="TabContainer/Options/Mode"]
 margin_left = 108.0
 margin_top = 5.0
 margin_right = 138.0
@@ -58,14 +81,14 @@ margin_bottom = 19.0
 text = "Land"
 align = 2
 
-[node name="ModeLandCheck" type="CheckBox" parent="TabContainer/Create/Mode"]
+[node name="ModeLandCheck" type="CheckBox" parent="TabContainer/Options/Mode"]
 margin_left = 142.0
 margin_right = 166.0
 margin_bottom = 24.0
 pressed = true
 group = SubResource( 1 )
 
-[node name="B" type="Label" parent="TabContainer/Create/Mode"]
+[node name="B" type="Label" parent="TabContainer/Options/Mode"]
 margin_left = 170.0
 margin_top = 5.0
 margin_right = 222.0
@@ -73,11 +96,99 @@ margin_bottom = 19.0
 text = "Building"
 align = 2
 
-[node name="ModeBuildingCheck" type="CheckBox" parent="TabContainer/Create/Mode"]
+[node name="ModeBuildingCheck" type="CheckBox" parent="TabContainer/Options/Mode"]
 margin_left = 226.0
 margin_right = 250.0
 margin_bottom = 24.0
 group = SubResource( 1 )
+
+[node name="Size" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 72.0
+margin_right = 250.0
+margin_bottom = 96.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Size"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Size"]
+margin_top = 5.0
+margin_right = 57.0
+margin_bottom = 19.0
+size_flags_horizontal = 3
+text = "Size"
+
+[node name="small" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 61.0
+margin_right = 124.0
+margin_bottom = 24.0
+pressed = true
+group = SubResource( 3 )
+text = "Small"
+
+[node name="med" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 128.0
+margin_right = 184.0
+margin_bottom = 24.0
+group = SubResource( 3 )
+text = "Med"
+
+[node name="large" type="CheckBox" parent="TabContainer/Options/Size"]
+margin_left = 188.0
+margin_right = 250.0
+margin_bottom = 24.0
+group = SubResource( 3 )
+text = "Large"
+
+[node name="Water" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 100.0
+margin_right = 250.0
+margin_bottom = 140.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Water"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Water"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Water:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Water"]
+margin_left = -397.0
+margin_right = -959.0
+margin_bottom = -724.0
+pressed = true
+
+[node name="Atmosphere" type="HBoxContainer" parent="TabContainer/Options"]
+margin_top = 144.0
+margin_right = 250.0
+margin_bottom = 184.0
+
+[node name="Info" type="Button" parent="TabContainer/Options/Atmosphere"]
+visible = false
+margin_right = 16.0
+margin_bottom = 24.0
+icon = ExtResource( 2 )
+
+[node name="Label" type="Label" parent="TabContainer/Options/Atmosphere"]
+margin_top = 13.0
+margin_right = 170.0
+margin_bottom = 27.0
+size_flags_horizontal = 3
+text = "Atmosphere:"
+
+[node name="CheckButton" type="CheckButton" parent="TabContainer/Options/Atmosphere"]
+margin_left = 174.0
+margin_right = 250.0
+margin_bottom = 40.0
+pressed = true
 
 [node name="Minimise" type="Button" parent="."]
 margin_left = 231.0
@@ -85,9 +196,6 @@ margin_top = -1.0
 margin_right = 259.0
 margin_bottom = 21.0
 icon = ExtResource( 1 )
-__meta__ = {
-"_edit_use_anchors_": false
-}
 
 [node name="Move" type="Button" parent="."]
 margin_left = 199.0
@@ -99,8 +207,15 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[connection signal="toggled" from="TabContainer/Create/Mode/ModeLandCheck" to="." method="_on_ModeLandCheck_toggled"]
-[connection signal="toggled" from="TabContainer/Create/Mode/ModeBuildingCheck" to="." method="_on_ModeBuildingCheck_toggled"]
+[connection signal="on_mode_changed" from="." to="." method="_on_GUI_on_mode_changed"]
+[connection signal="button_up" from="TabContainer/Options/Auto/CheckButton" to="." method="_on_CheckButton_button_up"]
+[connection signal="toggled" from="TabContainer/Options/Mode/ModeLandCheck" to="." method="_on_ModeLandCheck_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Mode/ModeBuildingCheck" to="." method="_on_ModeBuildingCheck_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Size/small" to="." method="_on_small_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Size/med" to="." method="_on_med_toggled"]
+[connection signal="toggled" from="TabContainer/Options/Size/large" to="." method="_on_large_toggled"]
+[connection signal="button_up" from="TabContainer/Options/Water/CheckButton" to="." method="_on_Water_button_up"]
+[connection signal="button_up" from="TabContainer/Options/Atmosphere/CheckButton" to="." method="_on_Atmosphere_button_up"]
 [connection signal="pressed" from="Minimise" to="." method="_on_Minimise_pressed"]
 [connection signal="button_down" from="Move" to="." method="_on_Move_button_down"]
 [connection signal="button_up" from="Move" to="." method="_on_Move_button_up"]

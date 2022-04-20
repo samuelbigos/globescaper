@@ -19,7 +19,6 @@ class Voxel:
 	
 	
 export var grid_height := 3
-export var cell_height := 0.5
 export var wfc_visualisation := false
 export var voxel_space_visualisation := false
 export var possibility_cube_material : Material
@@ -41,7 +40,7 @@ func get_cells(): return _grid_cells
 func get_verts(): return _grid_verts
 func get_voxels(): return _grid_voxels
 
-func create(var icosphere_verts, var icosphere_polys, var radius: float, var grid_radius: float):
+func create(var icosphere_verts, var icosphere_polys, var radius: float, var grid_radius: float, var cell_height):
 	# build a voxel map of our grid space by taking the icosphere verts and extending upwards
 	# with a 2D array
 	_grid_cells = []

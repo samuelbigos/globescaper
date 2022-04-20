@@ -1,5 +1,5 @@
 *.pdb
 *.ilk
-/export/win64*
+/export/*
 /.import/*
 /.mono/*

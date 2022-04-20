@@ -1,6 +1,6 @@
 extends Spatial
 
-export var _sdf_max_width : int = 4096 # 16384 # 6114
+export var _sdf_max_width : int = 2048 # 16384 # 6114
 export var _sdf_resolution : int = 256
 export var _sdf_volume_radius := 18.0
 export var _sdf_dist_mod := 5.0

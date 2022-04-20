@@ -114,8 +114,8 @@ void fragment() {
 	{
 		float sd_sphere = length(uv) - u_planet_radius;
 		sd_sphere /= u_sdf_dist_mod;
-		//current = vec4(sd_sphere * 0.5 + 0.5, 0.0, 0.0, 1.0);
-		current = vec4(1.0, 0.0, 0.0, 1.0);
+		current = vec4(sd_sphere * 0.5 + 0.5, 0.0, 0.0, 1.0);
+		//current = vec4(1.0, 0.0, 0.0, 1.0);
 	}
 	
 	// skip this pixel if it's out of the supplied bounds

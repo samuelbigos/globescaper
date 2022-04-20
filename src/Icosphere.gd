@@ -110,6 +110,7 @@ func generate() -> void:
 			return
 	
 	# this is where we subdivide the original icosphere as many times as we want
+	subdivisions = Globals.Size	
 	for _i in range(0, subdivisions):
 		var new_tris = []
 		for tri in tris:

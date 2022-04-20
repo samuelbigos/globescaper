@@ -29,7 +29,7 @@ func _ready() -> void:
 	add_child(planet_gimbal)
 	planet_gimbal.add_child(planet)
 	_planets.append(planet)
-	planet.setup(planet_gimbal, 200.0, _sun, _sun, PlanetScene, 0, 0.1)
+	planet.setup(planet_gimbal, 800.0, _sun, _sun, PlanetScene, 0, 0.05)
 	
 	_active_planet = planet
 	
@@ -43,18 +43,18 @@ func _process(delta: float) -> void:
 	_camera.update(delta)
 	
 	# debug input stuff
-	if Input.is_action_just_released("spacebar"):
-		_debug_display_mode = (_debug_display_mode + 1) % 2
-		match _debug_display_mode:
-			0:
-				$SDFGen/SDFVolume.visible = false
-				$SDFGen/SDFPreview.visible = false
-			1:
-				$SDFGen/SDFVolume.visible = true
-				$SDFGen/SDFPreview.visible = false
-			2:
-				$SDFGen/SDFVolume.visible = true
-				$SDFGen/SDFPreview.visible = true
+#	if Input.is_action_just_released("spacebar"):
+#		_debug_display_mode = (_debug_display_mode + 1) % 2
+#		match _debug_display_mode:
+#			0:
+#				$SDFGen/SDFVolume.visible = false
+#				$SDFGen/SDFPreview.visible = false
+#			1:
+#				$SDFGen/SDFVolume.visible = true
+#				$SDFGen/SDFPreview.visible = false
+#			2:
+#				$SDFGen/SDFVolume.visible = true
+#				$SDFGen/SDFPreview.visible = true
 				
 	# find out which cell face the mouse is over
 	_active_planet._do_mouse_picking(_camera, _active_placement_mode)

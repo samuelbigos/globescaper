@@ -4,8 +4,6 @@ class_name Planet
 # export
 export var WaterDeepColour : Color
 export var WaterShallowColour : Color
-export var WaterHeight = 1.0
-export var AutoGenerate = false
 
 # members
 var _cell_idx_to_surface = {}
@@ -17,6 +15,10 @@ var _gimbal : Spatial = null
 var _orbiting_body: Spatial = null
 var _satellites = []
 var _orbit_speed: float
+var _pending_collapsed_cells = []
+var _pending_collapsed_prots = []
+var _water_height = 1
+var _cell_height = 1
 
 # nodes
 onready var _globe_wireframe = get_node("GlobeWireframe")
@@ -32,10 +34,15 @@ onready var _orbit = get_node("Orbit")
 
 
 func _ready() -> void:
+	_water_height = 1.0 + (0.5 - Globals.Size / 4.0)
+	_cell_height = 1.0 + (0.5 - Globals.Size / 4.0)
+	if Globals.Size == 0:
+		_water_height += 0.5
+	
 	_icosphere.generate()
 	PrototypeDB.load_prototypes()
-	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + WaterHeight + 0.01)
-	_wfc.setup(_voxel_grid.get_cells(), PrototypeDB.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not AutoGenerate, _icosphere.get_polys())
+	_voxel_grid.create(_icosphere.get_verts(), _icosphere.get_polys(), _icosphere.radius, _icosphere.radius + _water_height + 0.01, _cell_height)
+	_wfc.setup(_voxel_grid.get_cells(), PrototypeDB.get_prototypes(), _voxel_grid.get_voxels(), _voxel_grid.get_verts(), _voxel_grid.grid_height, not Globals.AutoMode, _icosphere.get_polys())
 	#_wfc._wfc_finished = true
 	_setup_meshes()
 	
@@ -72,7 +79,7 @@ func _setup_meshes():
 	var ocean_mesh = ArrayMesh.new()
 	var ocean_mesh_array = _icosphere.get_array_mesh()
 	for i in range(ocean_mesh_array[Mesh.ARRAY_VERTEX].size()):
-		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + WaterHeight)
+		ocean_mesh_array[Mesh.ARRAY_VERTEX][i] = ocean_mesh_array[Mesh.ARRAY_VERTEX][i].normalized() * (_icosphere.radius + _water_height)
 	
 	_globe_land.mesh = _globe_land.mesh.duplicate()
 	_globe_land.material_override = _globe_land.material_override.duplicate()
@@ -98,7 +105,10 @@ func _setup_meshes():
 #	globe_wireframe_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_LINES, globe_wireframe_array)
 #	_globe_wireframe.set_mesh(globe_wireframe_mesh)
 
-func update(delta):	
+func update(delta):
+	_globe_ocean.visible = Globals.Water
+	_atmosphere.visible = Globals.Atmosphere
+	
 	var local_cam_pos = get_viewport().get_camera().global_transform.origin - global_transform.origin
 	var local_sun_pos = _sun.global_transform.origin - global_transform.origin
 	_land_material.set_shader_param("u_camera_pos", local_cam_pos)
@@ -132,7 +142,19 @@ func update(delta):
 			if last_wfc == -1:
 				meshes_added = 0
 				_wfc._wfc_finished = true
-				
+	
+	var sdf_verts = []
+	for i in range(0, _pending_collapsed_cells.size()):
+		var cell = _voxel_grid.get_cells()[_pending_collapsed_cells[i]]
+		var prot = PrototypeDB.get_prototypes()[_pending_collapsed_prots[i]]
+		_add_mesh_for_prototype_on_quad(cell, prot, sdf_verts)
+		
+	# draw these meshes on the sdf
+	_sdf.set_mesh_texture(sdf_verts)
+		
+	_pending_collapsed_cells.clear()
+	_pending_collapsed_prots.clear()
+	
 	_gimbal.global_transform.origin = _orbiting_body.global_transform.origin
 	_gimbal.rotation.y += delta * _orbit_speed
 	rotation.y = -_gimbal.rotation.y
@@ -179,14 +201,13 @@ func _do_mouse_picking(camera: Node, mode: int) -> void:
 	else:
 		_mouse_picker.visible = false
 
-func _add_mesh_for_prototype_on_quad(cell, prototype):
+func _add_mesh_for_prototype_on_quad(cell, prototype, verts):
 	var array_mesh = _globe_land.get_mesh()
 	var grid_verts = _voxel_grid.get_verts()
 	var corner_verts_pos = []
 	for j in range(0, 4):
 		corner_verts_pos.append(grid_verts[cell.v_bot[j]])
 		
-	var sdf_verts = []
 	_cell_idx_to_surface[cell.index] = []
 	for i in range(0, prototype.mesh_names.size()):
 		var mesh = PrototypeDB.get_prototype_mesh(prototype.mesh_names[i])
@@ -214,14 +235,11 @@ func _add_mesh_for_prototype_on_quad(cell, prototype):
 			tile_arrays[Mesh.ARRAY_NORMAL][v] = normal
 			
 		for v in tile_arrays[Mesh.ARRAY_INDEX]:
-			sdf_verts.append(tile_arrays[Mesh.ARRAY_VERTEX][v])
+			verts.append(tile_arrays[Mesh.ARRAY_VERTEX][v])
 			
 		# add the new mesh to the array mesh
 		array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tile_arrays)
 		_cell_idx_to_surface[cell.index].append(array_mesh.get_surface_count() - 1)
-		
-	# draw these meshes on the sdf
-	_sdf.set_mesh_texture(sdf_verts)
 	
 	return true
 
@@ -242,7 +260,7 @@ func _transform_vert(var vert : Vector3, var corners, var rot : int, var layer :
 	vert = lerp(new_x1, new_x2, vert_y)
 	
 	# add height
-	var height = _icosphere.radius + (_voxel_grid.cell_height) * (float(layer) + vert_height)
+	var height = _icosphere.radius + (_cell_height) * (float(layer) + vert_height)
 	return vert.normalized() * height
 
 func on_wfc_cell_collapsed(var cell_idx : int, var prototype_idx : int) -> bool:
@@ -254,7 +272,10 @@ func on_wfc_cell_collapsed(var cell_idx : int, var prototype_idx : int) -> bool:
 	remove_cell_surface(cell.index)
 		
 	_cell_idx_to_prototype[cell.index] = prototype_idx
-	return _add_mesh_for_prototype_on_quad(cell, prot)
+	
+	_pending_collapsed_cells.append(cell_idx)
+	_pending_collapsed_prots.append(prototype_idx)
+	return true
 
 func remove_cell_surface(var cell_idx):
 	if not _cell_idx_to_surface.has(cell_idx):

@@ -1,7 +1,7 @@
 #ifndef CELL_H
 #define CELL_H
 
-#include <Godot.hpp>
+#include <godot.hpp>
 #include <vector>
 
 namespace godot {

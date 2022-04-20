@@ -61,7 +61,7 @@ ZoomSpeed = 10.0
 [node name="VGimbal" type="Spatial" parent="Camera"]
 
 [node name="Camera" type="Camera" parent="Camera/VGimbal"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 74.5903 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 30 )
 near = 1.0
 far = 1100.0
 
@@ -79,7 +79,6 @@ material/0 = null
 environment = ExtResource( 20 )
 
 [node name="GUI" parent="." instance=ExtResource( 21 )]
-visible = false
 margin_left = 10.0
 margin_top = 10.0
 
