@@ -58,8 +58,8 @@ gdscript/warnings/integer_division=false
 
 [display]
 
-window/size/borderless=true
-window/size/fullscreen=true
+window/size/width=1920
+window/size/height=1080
 window/vsync/use_vsync=false
 window/filters/msaa=3
 

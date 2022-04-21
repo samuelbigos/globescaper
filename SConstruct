@@ -15,8 +15,8 @@ opts.Add(PathVariable('target_path', 'The path where the lib is installed.', 'bi
 opts.Add(PathVariable('target_name', 'The library name.', 'libwfc', PathVariable.PathAccept))
 
 # Local dependency paths, adapt them to your setup
-godot_headers_path = "../godot_cpp/godot_headers/"
-cpp_bindings_path = "../godot_cpp/"
+godot_headers_path = "../godot-cpp/godot-headers/"
+cpp_bindings_path = "../godot-cpp/"
 cpp_library = "libgodot-cpp"
 
 # only support 64 at this time..
@@ -76,6 +76,7 @@ elif env['platform'] == "windows":
 
     env.Append(CPPDEFINES=['WIN32', '_WIN32', '_WINDOWS', '_CRT_SECURE_NO_WARNINGS'])
     env.Append(CCFLAGS=['-W3', '-GR'])
+    env.Append(CXXFLAGS='/std:c++17')
     if env['target'] in ('debug', 'd'):
         env.Append(CPPDEFINES=['_DEBUG'])
         env.Append(CCFLAGS=['-EHsc', '-MDd', '-ZI'])

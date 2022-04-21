@@ -16,4 +16,5 @@ dest_files=[ "res://.import/cliff_1110-1110.obj-6a2d469ea20c5163b04c65c708c4ba81
 generate_tangents=true
 scale_mesh=Vector3( 1, 1, 1 )
 offset_mesh=Vector3( 0, 0, 0 )
-optimize_mesh=true
+octahedral_compression=true
+optimize_mesh_flags=4286
